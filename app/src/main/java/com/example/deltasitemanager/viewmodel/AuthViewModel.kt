@@ -43,6 +43,12 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+    fun clearSession() {
+        _apiKey.value = null // Clear the stored API key
+        _siteInfo.value = null // Clear the site info
+        _individualSiteInfo.value = null // Clear individual site info
+        _error.value = null // Clear error messages
+    }
 
     fun getSiteInfo() {
         viewModelScope.launch {

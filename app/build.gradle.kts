@@ -42,6 +42,11 @@ android {
 
 dependencies {
 
+    implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22") // Or a similar line
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
+    implementation("com.patrykandpatrick.vico:core:1.13.0")
+    implementation("com.patrykandpatrick.vico:views:1.13.0")
+
     implementation ("androidx.compose.material:material-icons-extended:1.6.1")
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
@@ -53,7 +58,11 @@ dependencies {
     implementation ("androidx.navigation:navigation-compose:2.7.6")
 
     implementation ("com.squareup.okhttp3:logging-interceptor:4.9.3")
+    implementation("io.coil-kt:coil-compose:2.2.2")
 
+    implementation("androidx.compose.material:material-icons-extended:1.7.8") // ✅ Use latest version
+
+    // Lifecycle & ViewModel Support
     implementation ("androidx.compose.ui:ui:1.4.0")
     implementation ("androidx.compose.material:material:1.4.0")
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.0")
@@ -61,7 +70,26 @@ dependencies {
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0")
-
+    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.0")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.0")
+    implementation ("androidx.compose.ui:ui:1.3.0")
+    implementation ("androidx.compose.material3:material3:1.0.0")
+    implementation ("androidx.compose.ui:ui-tooling-preview:1.3.0")
+    implementation ("androidx.constraintlayout:constraintlayout-compose:1.0.1")
+    implementation ("androidx.compose.material3:material3:1.0.0")
+    implementation ("androidx.compose.ui:ui:1.4.0")
+    implementation ("androidx.compose.material3:material3:1.0.0")
+    implementation ("androidx.navigation:navigation-compose:2.5.3")
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
+    implementation ("androidx.compose.runtime:runtime-livedata:1.4.0")
+    implementation ("androidx.compose.foundation:foundation:1.4.0")
+    implementation ("androidx.compose.material:material:1.4.0")
+    implementation ("androidx.compose.material3:material3:<latest_version>")
+    implementation ("androidx.compose.material:material-icons-extended:<version>")
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation ("androidx.compose.foundation:foundation:1.4.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

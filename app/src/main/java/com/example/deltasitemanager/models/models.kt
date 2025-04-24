@@ -126,5 +126,7 @@ data class IndividualSiteInfo(
     val PVI13_Active_Power: Double,
     val Inverter13_State: Int,
     val PVI14_Active_Power: Double,
-    val Inverter14_State: Int
+    val Inverter14_State: Int,
+    val diesel_save_cumulative: Double?,
+    val cost_diesel_save_cumulative: Double?
 )

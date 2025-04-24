@@ -23,6 +23,8 @@ import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun AnalyticsScreen(navController: NavController) {
@@ -56,18 +58,19 @@ fun AnalyticsScreen(navController: NavController) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                backgroundColor = Color.Blue,  // Blue background
+                contentColor = Color.White
             )
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-
-            // Device selection
-            DropdownMenuSelector("Device", selectedDevice, listOf("PCS", "Battery", "Load", "Grid", "DG")) {
-                selectedDevice = it
-                selectedParameter = ""
-            }
-
+    )  { paddingValues ->
+        // The rest of your UI goes here
+        Column(
+            modifier = Modifier
+                .padding(paddingValues) // Ensures the content doesn't overlap with the TopAppBar
+                .padding(16.dp)
+        )
+        {
             Spacer(modifier = Modifier.height(8.dp))
 
             // Parameter selection
@@ -164,7 +167,9 @@ fun AnalyticsScreen(navController: NavController) {
                         }
                     }
                 }
+
             }
+
         }
     }
 }

@@ -1,32 +1,74 @@
 package com.example.deltasitemanager.ui
 
-import android.graphics.Color
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.Dp
+import com.example.deltasitemanager.R
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.BarChart
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.deltasitemanager.viewmodel.AuthViewModel
-import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
 import kotlinx.coroutines.delay
+import com.example.deltasitemanager.models.IndividualSiteInfo
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SiteDetailScreen(
     macId: String,
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    val scope = rememberCoroutineScope()
+
     val individualSiteInfo by authViewModel.individualSiteInfo.collectAsState()
     val powerGridData = remember { mutableStateListOf<Entry>() }
     val loadData = remember { mutableStateListOf<Entry>() }
@@ -35,7 +77,7 @@ fun SiteDetailScreen(
 
     var xIndex by remember { mutableStateOf(0f) }
 
-    // Periodic update every 1 minute
+    // Fetch every 60 seconds
     LaunchedEffect(macId) {
         var counter = 0f
         while (true) {
@@ -52,153 +94,708 @@ fun SiteDetailScreen(
         }
     }
 
-    LaunchedEffect(individualSiteInfo) {
-        individualSiteInfo?.firstOrNull()?.let { info ->
-            powerGridData.add(Entry(xIndex, info.Grid_Import_Energy_Today.toFloat()))
-            loadData.add(Entry(xIndex, info.Load_Active_Power.toFloat()))
-            dgData.add(Entry(xIndex, (info.DG1_Active_Total_Export + info.DG2_Active_Total_Export).toFloat()))
-            essData.add(Entry(xIndex, info.PCS_EnergyExport_Today.toFloat()))
-            xIndex += 1f
-        }
-    }
+//    ModalNavigationDrawer(
+//        drawerState = drawerState,
+//        drawerContent = {
+//            DrawerContent(navController = navController, onItemClick = {
+//                scope.launch { drawerState.close() }
+//            })
+//        }
+//    ) {
+        Scaffold(
+            topBar = {
+                SmallTopAppBar(
+                    title = {
+                        Text(
+                            "Real Time Monitoring : BESS Mode",
+                            style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            navController.popBackStack()
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { navController.navigate("powerGraph") }) {
+                            Icon(Icons.Default.BarChart, contentDescription = "powerGraph", tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = Color(0xFF0D47A1)
+                    )
+                )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Site Details") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+            }
+        ) { innerPadding ->
+            val siteData = individualSiteInfo?.firstOrNull()
+
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()) // Enables scrolling if content overflows
+            ) {
+                // Diagram Section (with fixed height so it doesn't eat all space)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(400.dp) // Set height based on your visual needs
+                ) {
+                    SiteDiagram(siteData)
                 }
+
+                // 2. Spacer between diagram and summary
+                Spacer(modifier = Modifier.height(45.dp))
+
+                // 3. Summary widget
+                siteData?.let {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(16.dp)
+                    ) {
+//                        Text(
+//                            text = "Today's Summary",
+//                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+//                            modifier = Modifier.padding(bottom = 12.dp)
+//                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            WidgetItem(
+                                title = "Grid Outage",
+                                todayValue = "${it.PerDay_GridOutage_Instance} times"
+                            )
+                            WidgetItem(
+                                title = "Avg Load",
+                                todayValue = "${String.format("%.2f", it.PerDay_AvgLoad)} kW"
+                            )
+                            WidgetItem(
+                                title = "PCS Import",
+                                todayValue = "${String.format("%.2f", it.PCS_EnergyImport_Today)} kWh",
+                                cumulativeValue = "${String.format("%.2f", it.PCS_EnergyImport_Lifetime / 1000)} MWh"
+                            )
+                        }
+
+
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp)) // Add spacing between cards
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            WidgetItem(
+                                title = "Charging Cycles",
+                                todayValue = String.format("%.2f", it.charging_cycles)
+                            )
+                            WidgetItem(
+                                title = "Discharging Cycles",
+                                todayValue = String.format("%.2f", it.discharging_cycles)
+                            )
+                            WidgetItem(
+                                title = "Total Cycle Count",
+                                todayValue = String.format("%.2f", it.total_cycle_count)
+                            )
+                        }
+
+                    }
+                    Spacer(modifier = Modifier.height(16.dp)) // spacing between rows if needed
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(16.dp)
+                    )
+                    {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            WidgetItem(
+                                title = "Grid Outage Duration",
+                                todayValue = formatDuration(it.Grid_outage_duration) // in seconds
+                            )
+                            WidgetItem(
+                                title = "Decarbonization",
+                                todayValue = "${String.format("%.2f", it.co2_emission)} kg",
+                                cumulativeValue = "${String.format("%.2f", it.co2_emission / 1000)} ton"
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp)) // spacing between rows if needed
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(16.dp)
+                    )
+
+                    {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            WidgetItem(
+                                title = "Diesel Saving",
+                                todayValue = "${String.format("%.2f", it.diesel_save )}Ltr",
+//                                cumulativeValue = "${String.format("%.2f", it.diesel_save_cumulative)}Ltr"
+                            )
+
+                            WidgetItem(
+                                title = "Diesel Cost Saving",
+                                todayValue = "₹ ${String.format("%.2f", it.cost_diesel_save )}",
+//                                cumulativeValue = "₹ ${String.format("%.2f", it.cost_diesel_save_cumulative ?: 0.0)}"
+                            )
+                        }
+
+                    }
+
+                    }
+
+
+                }
+            }
+        }
+
+
+fun formatDuration(seconds: Int): String {
+    val hrs = seconds / 3600
+    val mins = (seconds % 3600) / 60
+    val secs = seconds % 60
+    return String.format("%02dhr : %02dmin : %02dsec", hrs, mins, secs)
+}
+//fun calculateCumulativeValue(todayValue: Double, previousCumulativeValue: Double): Double {
+//    return todayValue + previousCumulativeValue
+//}
+
+@Composable
+fun WidgetItem(
+    title: String,
+    todayValue: String,
+    cumulativeValue: String? = null,
+    unit: String? = null
+) {
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
+            .padding(8.dp),
+//            .background(Color(0xFFF5F5F5), shape = RoundedCornerShape(12.dp)),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall.copy( color =Color(0xFFFF9800))
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        if (cumulativeValue == null) {
+            Text(
+                text = "Today",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+            )
+            Text(
+                text = if (unit != null) "$todayValue $unit" else todayValue,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium,color =Color(0xFF9370DB))
+            )
+        } else {
+            Text(
+                text = "Today / Cumulative",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+            )
+            Text(
+                text = if (unit != null) "$todayValue $unit / $cumulativeValue $unit" else "$todayValue / $cumulativeValue",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
             )
         }
-    ) { paddingValues ->
-        val siteData = individualSiteInfo?.firstOrNull()
+    }
+}
 
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(16.dp)
-                .fillMaxSize()
-        ) {
-            // Moved Analytics icon here
-            Spacer(modifier = Modifier.height(8.dp))
+//@Composable
+//fun DrawerItem(label: String, icon: ImageVector, onClick: () -> Unit) {
+//    Row(
+//        verticalAlignment = Alignment.CenterVertically,
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .clickable { onClick() }
+//            .padding(vertical = 12.dp)
+//    ) {
+//        Icon(icon, contentDescription = label, tint = Color.White)
+//        Spacer(modifier = Modifier.width(8.dp))
+//        Text(text = label, color = Color.White)
+//    }
+//}
+//@Composable
+//fun DrawerContent(navController: NavController, onItemClick: () -> Unit) {
+//    Column(
+//        modifier = Modifier
+//            .fillMaxHeight()
+//            .width(250.dp)
+//            .background(Color.Black)
+//            .padding(16.dp)
+//    ) {
+//        DrawerItem("Site Dashboard", Icons.Default.Dashboard, onClick = {
+//            // navController.navigate("site_dashboard")
+//            onItemClick()
+//        })
+//        DrawerItem("Analytics", Icons.Default.ShowChart, onClick = {
+//            // navController.navigate("analytics")
+//            onItemClick()
+//        })
+//        DrawerItem("Report", Icons.Default.Assignment, onClick = {
+//            // navController.navigate("report")
+//            onItemClick()
+//        })
+//        DrawerItem("Events", Icons.Default.Notifications, onClick = {
+//            // navController.navigate("events")
+//            onItemClick()
+//        })
+//        DrawerItem("Homepage", Icons.Default.Home, onClick = {
+//            // navController.navigate("homepage")
+//            onItemClick()
+//        })
+//    }
+//}
+@Composable
+fun DeviceBox(
+    modifier: Modifier = Modifier,
+    imageRes: Int,
+    label: String,
+    value: String,
+    label1: String? = null,
+    value1: String? = null,
+    extraImageRes: Int? = null,
+    infoOnLeft: Boolean = false,
+    imageOffsetX: Dp = 0.dp,
+    imageOffsetY: Dp = 0.dp,
+    extraImageOffsetX: Dp = 0.dp,
+    extraImageOffsetY: Dp = 0.dp,
+) {
+    val iconSize = 80.dp
+    val extraIconSize = 20.dp
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+    Row(
+        modifier = modifier.padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (infoOnLeft) {
+            // Left side info
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier
+                    .padding(end = 4.dp)
+                    .widthIn(min = 100.dp, max = 180.dp)
             ) {
-                IconButton(
-                    onClick = { navController.navigate("analytics") },
-                    modifier = Modifier.padding(bottom = 8.dp)
+                // First label
+                Text(
+                    text = label,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                // Value + optional icon
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.BarChart,
-                        contentDescription = "Analytics",
-                        tint = MaterialTheme.colors.primary
+                    extraImageRes?.let {
+                        Image(
+                            painter = painterResource(id = it),
+                            contentDescription = "Extra Icon",
+                            modifier = Modifier
+                                .size(extraIconSize)
+                                .padding(end = 4.dp)
+                        )
+                    }
+                    Text(
+                        text = value,
+                        fontSize = 18.sp,
+                        color = Color(0xFFEC942A),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Second label and value
+                label1?.let {
+                    Text(
+                        text = it,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = value1 ?: "--",
+                        fontSize = 18.sp,
+                        color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
             }
 
-            siteData?.let { info ->
-                EnergyBlock("Power Grid", info.Grid_Import_Energy_Today, info.GRID_Active_Total_Import)
-                EnergyBlock("Load", info.Load_Active_Power, info.Load_Active_Power)
-                EnergyBlock("DG", info.DG_Export_Energy_Today, info.DG1_Active_Total_Export + info.DG2_Active_Total_Export)
-                EnergyBlock("ESS Output", info.PCS_EnergyExport_Today, info.PCS_EnergyExport_Lifetime)
+            Spacer(modifier = Modifier.width(8.dp))
+        }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                Text("Live Energy Graph", style = MaterialTheme.typography.h6)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            RealTimeEnergyLineChart(
-                powerGridData = powerGridData,
-                loadData = loadData,
-                dgData = dgData,
-                essData = essData,
+        // Device Image
+        Box(
+            modifier = Modifier.offset(x = imageOffsetX, y = imageOffsetY),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = "Device Image",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
+                    .size(iconSize)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(2.dp, Color.Gray, CircleShape)
             )
         }
-    }
-}
 
-@Composable
-fun EnergyBlock(title: String, today: Double, cumulative: Double) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = 4.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.h6)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("Today: %.2f kWh".format(today))
-            Text("Cumulative: %.2f MWh".format(cumulative))
+        if (!infoOnLeft) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier.widthIn(min = 100.dp, max = 140.dp)
+            ) {
+                // First label
+                Text(
+                    text = label,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Row for value with icon
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    extraImageRes?.let {
+                        Image(
+                            painter = painterResource(id = it),
+                            contentDescription = "Extra Icon",
+                            modifier = Modifier
+                                .size(extraIconSize)
+                                .padding(end = 4.dp)
+                        )
+                    }
+                    Text(
+                        text = value,
+                        fontSize = 18.sp,
+                        color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Second label and value
+                label1?.let {
+                    Text(
+                        text = it,
+                        fontSize = 12.sp,
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = value1 ?: "--",
+                        fontSize = 18.sp,
+                        color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }
 
+
 @Composable
-fun RealTimeEnergyLineChart(
-    powerGridData: List<Entry>,
-    loadData: List<Entry>,
-    dgData: List<Entry>,
-    essData: List<Entry>,
-    modifier: Modifier = Modifier
-) {
-    val currentPower = rememberUpdatedState(powerGridData.toList())
-    val currentLoad = rememberUpdatedState(loadData.toList())
-    val currentDG = rememberUpdatedState(dgData.toList())
-    val currentESS = rememberUpdatedState(essData.toList())
+fun SiteDiagram(siteData: IndividualSiteInfo?) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        val centerSize = 120.dp
+        val iconSize = 80.dp
+        val offsetX = 150.dp
+        val offsetY = 150.dp
+        val borderColor = Color(0xFF76C7C0)
 
-    AndroidView(
-        factory = { context ->
-            LineChart(context).apply {
-                axisRight.isEnabled = false
-                xAxis.granularity = 1f
-                description = Description().apply { text = "Energy in kWh" }
-                legend.isEnabled = true
-                animateX(1000)
+        Box(
+            modifier = Modifier
+                .padding(top = 80.dp)
+                .size(400.dp),
+            contentAlignment = Alignment.Center
+        )  {
+            val dgColor = Color(0xFFFF5722)
+            val socPathColor = Color(0xFFFFC107)
+            val loadColor = Color(0xFFFF9800)
+            val gridColor = Color(0xFF2196F3)
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val cloudPosition = Offset(size.width / 2, size.height / 2)
+                val dgPosition =
+                    Offset(size.width / 2 + offsetX.toPx(), size.height / 2 - offsetY.toPx())
+                val socPosition =
+                    Offset(size.width / 2 + offsetX.toPx(), size.height / 2 + offsetY.toPx())
+                val loadPosition =
+                    Offset(size.width / 2 - offsetX.toPx(), size.height / 2 + offsetY.toPx())
+                val gridPosition =
+                    Offset(size.width / 2 - offsetX.toPx(), size.height / 2 - offsetY.toPx())
+
+                val pathGap = 5.dp.toPx()
+                val verticalStagger = 8.dp.toPx()
+
+                val cloudBottomCenter =
+                    Offset(cloudPosition.x, cloudPosition.y + centerSize.toPx() / 2)
+                val socTopCenter = Offset(socPosition.x, socPosition.y - iconSize.toPx() / 2)
+
+                // DG Path
+                drawPath(
+                    path = Path().apply {
+                        moveTo(dgPosition.x, dgPosition.y)
+                        lineTo(dgPosition.x, cloudPosition.y)
+                        lineTo(cloudPosition.x, cloudPosition.y)
+                    },
+                    color = dgColor,
+                    style = Stroke(
+                        2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    )
+                )
+
+                // SOC left path
+                val leftStart = Offset(cloudBottomCenter.x - pathGap, cloudBottomCenter.y)
+                val leftDown = Offset(leftStart.x, leftStart.y + 40.dp.toPx())
+                val leftRight = Offset(socTopCenter.x - pathGap, leftDown.y)
+                val leftFinal = Offset(leftRight.x, socTopCenter.y)
+                drawPath(
+                    path = Path().apply {
+                        moveTo(leftStart.x, leftStart.y)
+                        lineTo(leftDown.x, leftDown.y)
+                        lineTo(leftRight.x, leftRight.y)
+                        lineTo(leftFinal.x, socTopCenter.y)
+                    },
+                    color = socPathColor,
+                    style = Stroke(
+                        2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    )
+                )
+
+                // SOC right path
+                val rightStart = Offset(cloudBottomCenter.x + pathGap, cloudBottomCenter.y)
+                val rightDown = Offset(rightStart.x, rightStart.y + 20.dp.toPx() + verticalStagger)
+                val rightRight = Offset(socTopCenter.x + pathGap, rightDown.y)
+                val rightFinal = Offset(rightRight.x, socTopCenter.y)
+                drawPath(
+                    path = Path().apply {
+                        moveTo(rightStart.x, rightStart.y)
+                        lineTo(rightDown.x, rightDown.y)
+                        lineTo(rightRight.x, rightRight.y)
+                        lineTo(rightFinal.x, socTopCenter.y)
+                    },
+                    color = socPathColor,
+                    style = Stroke(
+                        2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    )
+                )
+
+                // Start under the cloud
+                val loadStart = Offset(
+                    cloudBottomCenter.x - 20.dp.toPx(),
+                    cloudBottomCenter.y  // slightly below the cloud center
+                )
+
+              // Vertical drop down from cloud
+                val verticalDrop = Offset(loadStart.x, loadStart.y + 20.dp.toPx()) // drop vertically
+              // Turn left horizontally, extending to the load's center
+                val horizontalToLoadCenter = Offset(loadPosition.x, verticalDrop.y) // move horizontally to load's center
+
+              // Final vertical drop to load image
+                val finalLoadPosition = Offset(loadPosition.x, loadPosition.y)
+
+                drawPath(
+                    path = Path().apply {
+                        moveTo(loadStart.x, loadStart.y) // Start under the cloud
+                        lineTo(verticalDrop.x, verticalDrop.y) // Drop vertically from cloud
+                        lineTo(horizontalToLoadCenter.x, horizontalToLoadCenter.y) // Extend horizontally to load's center
+                        lineTo(finalLoadPosition.x, finalLoadPosition.y) // Final vertical drop to load
+                    },
+                    color = loadColor,
+                    style = Stroke(
+                        3.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    )
+                )
+
+
+                // Grid → Cloud Path ("L" shaped)
+                val cloudLeft = Offset(cloudPosition.x - centerSize.toPx() / 2, cloudPosition.y)
+                val gridToHorizontal =
+                    Offset(gridPosition.x - 10.dp.toPx(), gridPosition.y) // small right offset
+                val downToCloud = Offset(gridToHorizontal.x, cloudLeft.y)
+                val toCloud = Offset(cloudLeft.x, cloudLeft.y)
+
+                drawPath(
+                    path = Path().apply {
+                        moveTo(gridPosition.x, gridPosition.y)
+                        lineTo(gridToHorizontal.x, gridToHorizontal.y) // horizontal segment
+                        lineTo(downToCloud.x, downToCloud.y)           // vertical segment
+                        lineTo(toCloud.x, toCloud.y)                   // horizontal to cloud
+                    },
+                    color = gridColor,
+                    style = Stroke(
+                        2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    )
+                )
+
+
+                val startFromCloud = Offset(
+                cloudPosition.x - centerSize.toPx() / 2,
+                cloudPosition.y - 10.dp.toPx() // slightly above cloud left
+            )
+                // Starting point at cloud's left
+                val horizontalOffset = 90.dp.toPx() // adjust length as needed
+                val verticalOffset = 20.dp.toPx()   // vertical distance from cloud to grid
+
+                val horizontalLeft =
+                    Offset(startFromCloud.x - horizontalOffset, startFromCloud.y) // move left
+                val verticalUpToGrid =
+                    Offset(horizontalLeft.x, gridPosition.y + verticalOffset) // move up
+
+                drawPath(
+                    path = Path().apply {
+                        moveTo(startFromCloud.x, startFromCloud.y) // Start at cloud left
+                        lineTo(horizontalLeft.x, horizontalLeft.y) // Horizontal segment
+                        lineTo(verticalUpToGrid.x, verticalUpToGrid.y) // Vertical up
+                        lineTo(
+                            gridPosition.x,
+                            gridPosition.y
+                        ) // Final small line to exact grid point (optional)
+                    },
+                    color = gridColor,
+                    style = Stroke(
+                        2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    )
+                )
+
             }
-        },
-        update = { chart ->
-            val setPower = LineDataSet(currentPower.value, "Power Grid").apply {
-                color = Color.BLUE
-                setDrawCircles(false)
-                setDrawValues(false)
-                lineWidth = 2f
+                // Center - Cloud (with optional label below)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(centerSize)
+                    .border(4.dp, borderColor, RoundedCornerShape(50.dp))
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.cloud),
+                    contentDescription = "Cloud",
+                    contentScale = ContentScale.Fit
+                )
             }
 
-            val setLoad = LineDataSet(currentLoad.value, "Load").apply {
-                color = Color.RED
-                setDrawCircles(false)
-                setDrawValues(false)
-                lineWidth = 2f
-            }
 
-            val setDG = LineDataSet(currentDG.value, "DG").apply {
-                color = Color.GREEN
-                setDrawCircles(false)
-                setDrawValues(false)
-                lineWidth = 2f
-            }
+// Power Grid (Top-Left)
+            DeviceBox(
+                modifier = Modifier
+                    .offset(x = -offsetX + 40.dp, y = -offsetY), // shift right for label visibility
+                imageRes = R.drawable.power_grid,
+                label = "Power Grid",
+                value = "${siteData?.GRID_Active_Power_RYB?.toString() ?: "--"} kW",
+//                infoOnLeft = true,
+                imageOffsetX = (0).dp
+            )
 
-            val setESS = LineDataSet(currentESS.value, "ESS Output").apply {
-                color = Color.MAGENTA
-                setDrawCircles(false)
-                setDrawValues(false)
-                lineWidth = 2f
-            }
+            DeviceBox(
+                modifier = Modifier
+                    .offset(x = offsetX - 20.dp, y = -offsetY), // Move the whole box 20.dp to the left
+                imageRes = R.drawable.dg,
+                label = "DG (250 kVA)",
+                value = "${siteData?.DG1_Active_Power_RYB ?: "--"} kW",
+                label1 = "DG (500 kVA)",
+                value1 = "${siteData?.DG2_Active_Power_RYB ?: "--"} kW",
+                infoOnLeft = true,
+                imageOffsetY = (0).dp,
+                imageOffsetX = (-30).dp
+            )
 
-            val lineData = LineData(setPower, setLoad, setDG, setESS)
-            chart.data = lineData
-            chart.notifyDataSetChanged()
-            chart.invalidate()
-        },
-        modifier = modifier
-    )
+
+
+
+
+// Load (Bottom-Left)
+            DeviceBox(
+                modifier = Modifier
+                    .offset(x = -offsetX + 40.dp, y = offsetY), // shift right for label visibility
+                imageRes = R.drawable.load,
+                label = "Load",
+                value = "${siteData?.Load_Active_Power?.toString() ?: "--"} kW",
+//                infoOnLeft = true,
+                imageOffsetX = (0).dp // 👈 Shift image slightly to left
+            )
+
+
+            DeviceBox(
+                modifier = Modifier .offset(x = offsetX - 20.dp, y = offsetY),  // Adjust the offset as needed
+                imageRes = R.drawable.ess2,
+                extraImageRes = R.drawable.soc,
+                label = "SoC",
+                value = "${siteData?.Total_SoC?.let { "$it %" } ?: "--"} kw",
+                label1 = "ESS Output",
+                value1 = "${siteData?.PCS_ActivePower ?: "--"} kW",
+                infoOnLeft = true, // This places info on the opposite side
+                imageOffsetX = (-30).dp,
+                extraImageOffsetX = (-70).dp,  // Adjust this value to move extra image to the left
+                extraImageOffsetY = 0.dp
+            )
+
+
+        }
+    }
 }
+

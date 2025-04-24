@@ -4,13 +4,26 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import com.example.deltasitemanager.ui.*
 import com.example.deltasitemanager.viewmodel.AuthViewModel
 import com.example.deltasitemanager.ui.theme.DeltaSiteManagerTheme
+import kotlinx.coroutines.launch
+import androidx.navigation.NavType
+import com.example.deltasitemanager.ui.Screen
 import androidx.navigation.navArgument
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
+import com.example.deltasitemanager.ui.screens.PowerGraphScreen
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.saveable.rememberSaveable
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
@@ -18,47 +31,88 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DeltaSiteManagerTheme {
-                val navController = rememberNavController()
-                var isLoggedIn by remember { mutableStateOf(false) }
+            var isDarkTheme by rememberSaveable { mutableStateOf(false) }
 
-                NavHost(
-                    navController = navController,
-                    startDestination = if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route
-                ) {
-                    composable(Screen.Login.route) {
-                        LoginScreen(
-                            onLoginSuccess = {
-                                isLoggedIn = true
-                                navController.navigate(Screen.Dashboard.route) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
-                                }
-                            },
-                            authViewModel = authViewModel
-                        )
+            DeltaSiteManagerTheme(darkTheme = isDarkTheme) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    val navController = rememberNavController()
+                    val drawerState = rememberDrawerState(DrawerValue.Closed)
+                    val scope = rememberCoroutineScope()
+                    var isLoggedIn by rememberSaveable { mutableStateOf(false) }
+
+                    val onLogout = {
+                        authViewModel.clearSession()
+                        isLoggedIn = false
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Dashboard.route) { inclusive = true }
+                        }
                     }
 
-                    composable(Screen.Dashboard.route) {
-                        DashboardScreen(
+                    ModalNavigationDrawer(
+                        drawerState = drawerState,
+                        drawerContent = {
+                            DrawerMenu(
+                                navController = navController,
+                                onNavigate = { route ->
+                                    navController.navigate(route)
+                                    scope.launch { drawerState.close() }
+                                },
+                                onCloseDrawer = { scope.launch { drawerState.close() } },
+                                onToggleTheme = { isDarkTheme = !isDarkTheme },
+                                isDarkTheme = isDarkTheme
+                            )
+                        }
+                    ) {
+                        NavHost(
                             navController = navController,
-                            authViewModel = authViewModel
-                        )
-                    }
+                            startDestination = if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route
+                        ) {
+                            composable(Screen.Login.route) {
+                                LoginScreen(
+                                    onLoginSuccess = {
+                                        isLoggedIn = true
+                                        navController.navigate(Screen.Dashboard.route) {
+                                            popUpTo(Screen.Login.route) { inclusive = true }
+                                        }
+                                    },
+                                    authViewModel = authViewModel
+                                )
+                            }
 
-                    composable(
-                        route = Screen.SiteDetail.route,
-                        arguments = listOf(navArgument("macId") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val macId = backStackEntry.arguments?.getString("macId") ?: ""
-                        SiteDetailScreen(
-                            macId = macId,
-                            navController = navController,
-                            authViewModel = authViewModel
-                        )
-                    }
+                            composable(Screen.Dashboard.route) {
+                                DashboardScreen(
+                                    navController = navController,
+                                    authViewModel = authViewModel,
+                                    onLogout = onLogout,
+                                    isDarkTheme = isDarkTheme,
+                                    onToggleTheme = { isDarkTheme = !isDarkTheme }
+                                )
+                            }
 
-                    composable(Screen.Analytics.route) {
-                        AnalyticsScreen(navController = navController)
+                            composable(
+                                route = Screen.SiteDetail.route,
+                                arguments = listOf(navArgument("macId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val macId = backStackEntry.arguments?.getString("macId") ?: ""
+                                SiteDetailScreen(
+                                    macId = macId,
+                                    navController = navController,
+                                    authViewModel = authViewModel
+                                )
+                            }
+
+                            composable(Screen.Analytics.route) {
+                                AnalyticsScreen(navController = navController)
+                            }
+
+                            composable(Screen.PowerGraph.route) {
+                                PowerGraphScreen(
+                                    navController = navController,
+                                    authViewModel = authViewModel  // <-- Pass it here
+                                )
+                            }
+
+                        }
                     }
                 }
             }
