@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -26,11 +25,17 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.graphics.toArgb
+
 
 
 @Composable
-fun PowerGraphScreen(navController: NavController, authViewModel: AuthViewModel) {
-    val graphViewModel: GraphViewModel = viewModel(factory = GraphViewModelFactory(authViewModel))
+fun PowerGraphScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    macId: String
+) {
+    val graphViewModel: GraphViewModel = viewModel(factory = GraphViewModelFactory(authViewModel, macId))
 
     val pcsActivePower by graphViewModel.pcsData.collectAsState(emptyList())
     val gridActivePowerRYB by graphViewModel.gridData.collectAsState(emptyList())
@@ -126,7 +131,7 @@ fun PowerGraph(title: String, entries: List<Entry>, lineColor: Color) {
                     }
 
                     axisLeft.setDrawGridLines(true)
-                    axisLeft.axisMinimum = 0f
+                    axisLeft.axisMinimum = 0f // This is the likely culprit
                     axisLeft.valueFormatter = object : ValueFormatter() {
                         override fun getFormattedValue(value: Float): String {
                             return value.toInt().toString() // Only number

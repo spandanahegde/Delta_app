@@ -49,6 +49,9 @@ class AuthViewModel : ViewModel() {
         _individualSiteInfo.value = null // Clear individual site info
         _error.value = null // Clear error messages
     }
+    fun getApiKey(): String {
+        return apiKey.value ?: throw IllegalStateException("API Key is not available")
+    }
 
     fun getSiteInfo() {
         viewModelScope.launch {

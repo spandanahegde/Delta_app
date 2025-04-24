@@ -8,8 +8,8 @@ sealed class Screen(val route: String) {
     }
     object Analytics : Screen("analytics")
 
-    // ✅ New screen
-    object PowerGraph : Screen("powerGraph")
+    // ✅ Updated route for PowerGraph
+    object PowerGraph : Screen("powerGraphScreen/{macId}") {
+        fun createRoute(macId: String): String = "powerGraphScreen/$macId"
+    }
 }
-
-

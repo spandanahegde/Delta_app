@@ -6,13 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.example.deltasitemanager.network.ApiClient
 import com.github.mikephil.charting.data.Entry
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 class GraphViewModel(
-    private val authViewModel: AuthViewModel
+    private val authViewModel: AuthViewModel,
+    private val macId: String
 ) : ViewModel() {
 
     private val _pcsData = MutableStateFlow<List<Entry>>(emptyList())
@@ -27,33 +29,40 @@ class GraphViewModel(
     private val _dgData = MutableStateFlow<List<Entry>>(emptyList())
     val dgData: StateFlow<List<Entry>> = _dgData
 
-    private var timeCounter = 0f
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     init {
-        viewModelScope.launch {
-            authViewModel.apiKey
-                .combine(authViewModel.siteInfo) { apiKey, siteList ->
-                    // Safe call to check for null or empty siteList
-                    if (!apiKey.isNullOrBlank() && !siteList.isNullOrEmpty()) {
-                        // Safe call to access the first element of siteList
-                        Pair(apiKey, siteList.firstOrNull()?.mac_id)
-                    } else null
+        if (macId.isNotBlank()) {
+            viewModelScope.launch {
+                try {
+                    loadGraph(macId)
+                } catch (e: Exception) {
+                    Log.e("GraphLoad", "Failed to load graph: ${e.message}", e)
                 }
-                .filterNotNull()  // Filters out null pairs
-                .collect { (apiKey, macId) ->
-                    // Handle real-time data fetching every 60 seconds
-                    while (true) {
-                        macId?.let {
-                            fetchRealTimeData(apiKey, it)
-                        }
-                        delay(60_000) // fetch every 60 seconds
-                    }
-                }
+            }
+        } else {
+            Log.w("GraphViewModel", "macId is blank. Skipping graph load.")
         }
     }
 
+    init {
+        viewModelScope.launch {
+            try {
+                loadGraph(macId)
+            } catch (e: Exception) {
+                Log.e("GraphLoad", "Failed to load graph: ${e.message}", e)
+            }
+        }
+    }
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    private suspend fun loadGraph(macId: String) {
+        val apiKey = authViewModel.getApiKey() // <-- Now this works
+        while (true) {
+            fetchRealTimeData(apiKey, macId)
+            delay(5000)
+        }
+    }
+
 
     private suspend fun fetchRealTimeData(apiKey: String, macId: String) {
         try {
@@ -75,6 +84,4 @@ class GraphViewModel(
             Log.e("GraphViewModel", "Exception: ${e.localizedMessage}")
         }
     }
-
-
 }

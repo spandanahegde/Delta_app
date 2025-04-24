@@ -119,7 +119,7 @@ fun SiteDetailScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { navController.navigate("powerGraph") }) {
+                        IconButton(onClick = { navController.navigate("powerGraphScreen/${macId}") }) {
                             Icon(Icons.Default.BarChart, contentDescription = "powerGraph", tint = Color.White)
                         }
                     },

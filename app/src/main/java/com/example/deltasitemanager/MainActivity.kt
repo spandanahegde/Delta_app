@@ -4,26 +4,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.navigation.compose.*
-import com.example.deltasitemanager.ui.*
-import com.example.deltasitemanager.viewmodel.AuthViewModel
-import com.example.deltasitemanager.ui.theme.DeltaSiteManagerTheme
-import kotlinx.coroutines.launch
-import androidx.navigation.NavType
-import com.example.deltasitemanager.ui.Screen
-import androidx.navigation.navArgument
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.fillMaxSize
-import com.example.deltasitemanager.ui.screens.PowerGraphScreen
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.navigation.NavType
+import androidx.navigation.compose.*
+import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import com.example.deltasitemanager.ui.*
+import com.example.deltasitemanager.ui.screens.*
+import com.example.deltasitemanager.ui.theme.DeltaSiteManagerTheme
+import com.example.deltasitemanager.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
@@ -105,12 +101,19 @@ class MainActivity : ComponentActivity() {
                                 AnalyticsScreen(navController = navController)
                             }
 
-                            composable(Screen.PowerGraph.route) {
+                            // ✅ Correct route for PowerGraph
+                            composable(
+                                route = "powerGraphScreen/{macId}",
+                                arguments = listOf(navArgument("macId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val macId = backStackEntry.arguments?.getString("macId") ?: ""
                                 PowerGraphScreen(
-                                    navController = navController,
-                                    authViewModel = authViewModel  // <-- Pass it here
+                                    navController = navController, // Pass the navController here
+                                    authViewModel = authViewModel, // Pass the authViewModel here
+                                    macId = macId // Pass the macId here
                                 )
                             }
+
 
                         }
                     }
