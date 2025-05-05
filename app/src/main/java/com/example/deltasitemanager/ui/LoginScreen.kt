@@ -24,6 +24,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.deltasitemanager.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.painterResource
+import com.example.deltasitemanager.R
 
 @Composable
 fun LoginScreen(
@@ -43,21 +45,26 @@ fun LoginScreen(
         }
     }
 
+    val darkBackground = Color.Black
+    val fieldBackground = Color(0xFF1C1C1C)
+    val textColor = Color.White
+    val errorColor = Color.Red
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(darkBackground)
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Logo
         Image(
-            painter = rememberAsyncImagePainter("https://pqr.deltaww.com/BESS/public/images/delta_logo.png"),
+            painter = painterResource(id = R.drawable.delta_logo),
             contentDescription = "Delta Logo",
             modifier = Modifier
                 .height(150.dp)
-                .width(300.dp)
+                .width(280.dp)
                 .padding(bottom = 60.dp),
             contentScale = ContentScale.Fit
         )
@@ -74,9 +81,15 @@ fun LoginScreen(
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = "User Icon") },
             shape = RoundedCornerShape(12.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                backgroundColor = Color(0xFFF5F5F5),
-                focusedBorderColor = MaterialTheme.colors.primary,
-                unfocusedBorderColor = Color.Gray
+                backgroundColor = fieldBackground, // Dark background for field
+                textColor = textColor,             // White text
+                focusedBorderColor = Color.Gray,
+                unfocusedBorderColor = Color.DarkGray,
+                cursorColor = textColor,
+                leadingIconColor = textColor,
+                trailingIconColor = textColor,
+                focusedLabelColor = textColor,
+                unfocusedLabelColor = Color.LightGray
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -103,14 +116,21 @@ fun LoginScreen(
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             shape = RoundedCornerShape(12.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                backgroundColor = Color(0xFFF5F5F5),
-                focusedBorderColor = MaterialTheme.colors.primary,
-                unfocusedBorderColor = Color.Gray
+                backgroundColor = fieldBackground, // Dark background for field
+                textColor = textColor,             // White text
+                focusedBorderColor = Color.Gray,
+                unfocusedBorderColor = Color.DarkGray,
+                cursorColor = textColor,
+                leadingIconColor = textColor,
+                trailingIconColor = textColor,
+                focusedLabelColor = textColor,
+                unfocusedLabelColor = Color.LightGray
             ),
-            modifier = Modifier.fillMaxWidth()
+
+                    modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Error Message ABOVE login button
         if (showError) {
@@ -121,7 +141,7 @@ fun LoginScreen(
                 modifier = Modifier.align(Alignment.Start)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         // Login Button

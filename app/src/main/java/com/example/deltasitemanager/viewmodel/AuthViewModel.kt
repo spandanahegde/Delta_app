@@ -1,18 +1,23 @@
 package com.example.deltasitemanager.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.deltasitemanager.models.IndividualSiteInfo
 import com.example.deltasitemanager.models.SiteInfo
+import com.example.deltasitemanager.models.GraphDataItem
 import com.example.deltasitemanager.network.ApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
+import java.text.SimpleDateFormat
+import java.util.*
+import android.util.Log
+
 
 class AuthViewModel : ViewModel() {
+
     private val _apiKey = MutableStateFlow<String?>(null)
     val apiKey: StateFlow<String?> = _apiKey
 
@@ -22,8 +27,18 @@ class AuthViewModel : ViewModel() {
     private val _individualSiteInfo = MutableStateFlow<List<IndividualSiteInfo>?>(null)
     val individualSiteInfo: StateFlow<List<IndividualSiteInfo>?> = _individualSiteInfo
 
+    private val _graphDataItems = MutableStateFlow<List<GraphDataItem>?>(null)
+    val graphDataItems: StateFlow<List<GraphDataItem>?> = _graphDataItems
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _selectedMacId = MutableStateFlow<String?>(null)
+    val selectedMacId: StateFlow<String?> = _selectedMacId
+
+    fun setSelectedMacId(macId: String) {
+        _selectedMacId.value = macId
+    }
 
     fun login(username: String, password: String) {
         viewModelScope.launch {
@@ -43,12 +58,16 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+
     fun clearSession() {
-        _apiKey.value = null // Clear the stored API key
-        _siteInfo.value = null // Clear the site info
-        _individualSiteInfo.value = null // Clear individual site info
-        _error.value = null // Clear error messages
+        _apiKey.value = null
+        _siteInfo.value = null
+        _individualSiteInfo.value = null
+        _graphDataItems.value = null
+        _selectedMacId.value = null
+        _error.value = null
     }
+
     fun getApiKey(): String {
         return apiKey.value ?: throw IllegalStateException("API Key is not available")
     }
@@ -68,8 +87,6 @@ class AuthViewModel : ViewModel() {
                     val body = response.body()
                     if (body != null && body.status == "success") {
                         val message = body.message
-
-                        // Try parsing manually using Gson
                         val gson = com.google.gson.Gson()
                         val jsonElement = gson.toJsonTree(message)
 

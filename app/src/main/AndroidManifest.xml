@@ -16,11 +16,10 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.DeltaSiteManager">
+<!--            android:theme="@style/Theme.DeltaSiteManager.Splash"> &lt;!&ndash; Splash theme for startup &ndash;&gt;-->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

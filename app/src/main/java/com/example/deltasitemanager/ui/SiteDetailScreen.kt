@@ -32,7 +32,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
@@ -47,6 +46,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.BarChart
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -56,6 +56,7 @@ import kotlinx.coroutines.delay
 import com.example.deltasitemanager.models.IndividualSiteInfo
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,12 +120,19 @@ fun SiteDetailScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { navController.navigate("powerGraphScreen/${macId}") }) {
-                            Icon(Icons.Default.BarChart, contentDescription = "powerGraph", tint = Color.White)
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ShowChart,
+                            contentDescription = "View Graph",
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable {
+                                    navController.navigate("graph_screen/$macId")
+                                },
+                            tint = Color.White
+                        )
                     },
                     colors = TopAppBarDefaults.smallTopAppBarColors(
-                        containerColor = Color(0xFF0D47A1)
+                        containerColor = Color(0xFF435385)
                     )
                 )
 
@@ -163,12 +171,6 @@ fun SiteDetailScreen(
                             .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                             .padding(16.dp)
                     ) {
-//                        Text(
-//                            text = "Today's Summary",
-//                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-//                            modifier = Modifier.padding(bottom = 12.dp)
-//                        )
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -203,7 +205,8 @@ fun SiteDetailScreen(
                             )
                             .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                             .padding(16.dp)
-                    ) {
+                    )
+                    {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -299,9 +302,7 @@ fun formatDuration(seconds: Int): String {
     val secs = seconds % 60
     return String.format("%02dhr : %02dmin : %02dsec", hrs, mins, secs)
 }
-//fun calculateCumulativeValue(todayValue: Double, previousCumulativeValue: Double): Double {
-//    return todayValue + previousCumulativeValue
-//}
+
 
 @Composable
 fun WidgetItem(
@@ -314,7 +315,6 @@ fun WidgetItem(
         modifier = Modifier
             .padding(8.dp)
             .padding(8.dp),
-//            .background(Color(0xFFF5F5F5), shape = RoundedCornerShape(12.dp)),
         horizontalAlignment = Alignment.Start
     ) {
         Text(
@@ -322,7 +322,7 @@ fun WidgetItem(
             style = MaterialTheme.typography.titleSmall.copy( color =Color(0xFFFF9800))
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (cumulativeValue == null) {
             Text(
@@ -340,7 +340,7 @@ fun WidgetItem(
             )
             Text(
                 text = if (unit != null) "$todayValue $unit / $cumulativeValue $unit" else "$todayValue / $cumulativeValue",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium,color =Color(0xFF9370DB))
             )
         }
     }

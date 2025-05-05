@@ -15,11 +15,21 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import java.util.Date
+import java.util.Locale
 import com.example.deltasitemanager.ui.*
 import com.example.deltasitemanager.ui.screens.*
 import com.example.deltasitemanager.ui.theme.DeltaSiteManagerTheme
 import com.example.deltasitemanager.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import com.github.mikephil.charting.data.Entry
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import com.example.deltasitemanager.viewmodel.GraphViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
@@ -29,13 +39,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             var isDarkTheme by rememberSaveable { mutableStateOf(false) }
 
-            DeltaSiteManagerTheme(darkTheme = isDarkTheme) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+            DeltaSiteManagerTheme {
+            Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     val drawerState = rememberDrawerState(DrawerValue.Closed)
                     val scope = rememberCoroutineScope()
                     var isLoggedIn by rememberSaveable { mutableStateOf(false) }
-
+                    val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                     val onLogout = {
                         authViewModel.clearSession()
                         isLoggedIn = false
@@ -44,21 +54,21 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    ModalNavigationDrawer(
-                        drawerState = drawerState,
-                        drawerContent = {
-                            DrawerMenu(
-                                navController = navController,
-                                onNavigate = { route ->
-                                    navController.navigate(route)
-                                    scope.launch { drawerState.close() }
-                                },
-                                onCloseDrawer = { scope.launch { drawerState.close() } },
-                                onToggleTheme = { isDarkTheme = !isDarkTheme },
-                                isDarkTheme = isDarkTheme
-                            )
-                        }
-                    ) {
+//                    ModalNavigationDrawer(
+//                        drawerState = drawerState,
+//                        drawerContent = {
+//                            DrawerMenu(
+//                                navController = navController,
+//                                onNavigate = { route ->
+//                                    navController.navigate(route)
+//                                    scope.launch { drawerState.close() }
+//                                },
+//                                onCloseDrawer = { scope.launch { drawerState.close() } },
+//                                onToggleTheme = { isDarkTheme = !isDarkTheme },
+//                                isDarkTheme = isDarkTheme
+//                            )
+//                        }
+//                    ) {
                         NavHost(
                             navController = navController,
                             startDestination = if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route
@@ -80,8 +90,7 @@ class MainActivity : ComponentActivity() {
                                     navController = navController,
                                     authViewModel = authViewModel,
                                     onLogout = onLogout,
-                                    isDarkTheme = isDarkTheme,
-                                    onToggleTheme = { isDarkTheme = !isDarkTheme }
+
                                 )
                             }
 
@@ -101,17 +110,15 @@ class MainActivity : ComponentActivity() {
                                 AnalyticsScreen(navController = navController)
                             }
 
-                            // ✅ Correct route for PowerGraph
-                            composable(
-                                route = "powerGraphScreen/{macId}",
-                                arguments = listOf(navArgument("macId") { type = NavType.StringType })
-                            ) { backStackEntry ->
-                                val macId = backStackEntry.arguments?.getString("macId") ?: ""
-                                PowerGraphScreen(
-                                    navController = navController, // Pass the navController here
-                                    authViewModel = authViewModel, // Pass the authViewModel here
-                                    macId = macId // Pass the macId here
-                                )
+                            composable("graph_screen/{macId}") { backStackEntry ->
+                                val macId = backStackEntry.arguments?.getString("macId") ?: return@composable
+                                val viewModel: GraphViewModel = viewModel()
+
+                                LaunchedEffect(Unit) {
+                                    viewModel.fetchGraphData(macId, viewModel.getTodayDate())
+                                }
+
+                                GraphScreen(viewModel = viewModel, navController = navController, macId = macId)
                             }
 
 
@@ -121,4 +128,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
+

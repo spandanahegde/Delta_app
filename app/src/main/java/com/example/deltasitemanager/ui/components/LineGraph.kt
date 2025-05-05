@@ -1,5 +1,3 @@
-// File: ui.components.LineGraph.kt
-
 package com.example.deltasitemanager.ui.components
 
 import android.graphics.Color
@@ -15,21 +13,39 @@ import com.github.mikephil.charting.data.LineDataSet
 fun LineGraph(title: String, entries: List<Entry>, lineColor: Int = Color.BLUE) {
     AndroidView(factory = { context ->
         LineChart(context).apply {
-            description.isEnabled = false
+            // Enable/disable chart description
+            description.isEnabled = true
+            description.text = title
+            description.textColor = Color.BLACK
+            description.textSize = 12f
+
+            // Interactivity
             setTouchEnabled(true)
             setPinchZoom(true)
+
+            // Hide right axis
             axisRight.isEnabled = false
             legend.isEnabled = false
+
+            // X-Axis Configuration
             xAxis.position = XAxis.XAxisPosition.BOTTOM
+            xAxis.setDrawGridLines(false)
+            xAxis.granularity = 1f
+
+            // Y-Axis Configuration (Optional)
+            axisLeft.setDrawGridLines(true)
+            axisLeft.setDrawLabels(true)
+            axisLeft.axisMinimum = 0f
         }
     }, update = { chart ->
         val dataSet = LineDataSet(entries, title).apply {
             color = lineColor
-            setDrawCircles(false)
-            setDrawValues(false)
+            setDrawCircles(false) // You can set this to true to show data points as circles
+            setDrawValues(false) // Hide data values on the graph
             lineWidth = 2f
         }
+
         chart.data = LineData(dataSet)
-        chart.invalidate()
+        chart.invalidate() // Refresh the chart to update the data
     })
 }

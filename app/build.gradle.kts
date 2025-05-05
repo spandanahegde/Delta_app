@@ -52,6 +52,8 @@ dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation(platform("androidx.compose:compose-bom:2024.02.01"))
     implementation("com.himanshoe:charty:1.0.1")
+    implementation ("androidx.core:core-splashscreen:1.0.1")
+    implementation ("com.google.android.material:material:1.11.0")
 
 
 

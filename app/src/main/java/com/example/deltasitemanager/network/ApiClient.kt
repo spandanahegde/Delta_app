@@ -22,7 +22,7 @@ object ApiClient {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    // 👇 Register the generic deserializer for GenericResponse<IndividualSiteInfo>
+    //  Register the generic deserializer for GenericResponse<IndividualSiteInfo>
     private val gson = GsonBuilder()
         .registerTypeAdapter(
             TypeToken.getParameterized(GenericResponse::class.java, IndividualSiteInfo::class.java).type,

@@ -1,5 +1,4 @@
 package com.example.deltasitemanager.models
-
 data class LoginRequest(
     val username: String,
     val password: String
@@ -129,4 +128,19 @@ data class IndividualSiteInfo(
     val Inverter14_State: Int,
     val diesel_save_cumulative: Double?,
     val cost_diesel_save_cumulative: Double?
+)
+
+data class GraphDataItem(
+    val evtime: String,
+    val GRID_Active_Power_RYB: Float,
+    val DG1_Active_Power_RYB: Float,
+    val DG2_Active_Power_RYB: Float,
+    val PCS_ActivePower: Float,
+    val Load_Active_Power: Float,
+    val PVI_Total_Active_Power: Float
+)
+
+data class GraphDataResponse(
+    val status: String,
+    val message: List<GraphDataItem>
 )
