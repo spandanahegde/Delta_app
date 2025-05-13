@@ -16,7 +16,7 @@ fun LineGraph(title: String, entries: List<Entry>, lineColor: Int = Color.BLUE) 
             // Enable/disable chart description
             description.isEnabled = true
             description.text = title
-            description.textColor = Color.BLACK
+            description.textColor = Color.WHITE
             description.textSize = 12f
 
             // Interactivity

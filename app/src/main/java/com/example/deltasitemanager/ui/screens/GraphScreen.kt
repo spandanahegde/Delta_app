@@ -1,38 +1,52 @@
 package com.example.deltasitemanager.ui.screens
-import android.util.Log
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.deltasitemanager.models.GraphDataItem
 import com.example.deltasitemanager.ui.components.LineChartView
 import com.example.deltasitemanager.viewmodel.GraphViewModel
-import androidx.navigation.NavController
-import androidx.compose.material3.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GraphScreen(viewModel: GraphViewModel, macId: String,navController: NavController ) {
+fun GraphScreen(viewModel: GraphViewModel, macId: String, navController: NavController) {
     val graphData by viewModel.graphData.collectAsState()
+    val today = remember { viewModel.getTodayDate() }
 
-    // Trigger fetch once on composition
-    LaunchedEffect(Unit) {
-        val today = viewModel.getTodayDate()
+    LaunchedEffect(macId, today) {
         viewModel.fetchGraphData(macId, today)
     }
 
-    // Colors
-    val SoftBlue = Color(0xFF073E9D).toArgb()
-    val SoftGreen = Color(0xFF23E52B).toArgb()
-    val SoftMagenta = Color(0xFFE10E0E).toArgb()
-    val SoftRed = Color(0xFFE0A006).toArgb()
+    // Define colors
+    val graphColors = mapOf(
+        "Grid Power (kW)" to Color(0xFF073E9D),
+        "PCS Power (kW)" to Color(0xFFE10E0E),
+        "Load Power (kW)" to Color(0xFFE0A006),
+        "DG Power (kW)" to Color(0xFF23E52B),
+        "PVI Total Power (kW)" to Color(0xFF00BCD4)
+    )
+
+    // Define selectors
+    val graphConfigs = listOf<Pair<String, (GraphDataItem) -> Float>>(
+        "Grid Power (kW)" to { it.GRID_Active_Power_RYB },
+        "PCS Power (kW)" to { it.PCS_ActivePower.toFloat() },
+        "Load Power (kW)" to { it.Load_Active_Power },
+        "DG Power (kW)" to { it.DG1_Active_Power_RYB }
+    ).toMutableList()
+
+    val hasPviData = remember(graphData) { graphData.any { it.PVI_Total_Active_Power != 0f } }
+    if (hasPviData) {
+        graphConfigs.add("PVI Total Power (kW)" to { it.PVI_Total_Active_Power })
+    }
 
     Scaffold(
         topBar = {
@@ -58,51 +72,35 @@ fun GraphScreen(viewModel: GraphViewModel, macId: String,navController: NavContr
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Log.d("GraphScreen", "Graph data size: ${graphData.size}")
-            Log.d("GraphScreen", "Graph data: $graphData")
-//
-//            Text("Power Graphs", style = MaterialTheme.typography.titleLarge)
+            Text("Date: $today", style = MaterialTheme.typography.bodyLarge, color = Color.LightGray)
+            Spacer(modifier = Modifier.height(8.dp))
             Text("Graph points: ${graphData.size}", color = Color.Gray)
-
             Spacer(modifier = Modifier.height(16.dp))
 
             if (graphData.isNotEmpty()) {
-                Text("Grid Power (kW)", style = MaterialTheme.typography.titleMedium)
-                LineChartView(
-                    graphData = graphData,
-                    powerSelector = { it.GRID_Active_Power_RYB },
-                    lineColor = SoftBlue
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("PCS Power (kW)", style = MaterialTheme.typography.titleMedium)
-                LineChartView(
-                    graphData = graphData,
-                    powerSelector = { it.PCS_ActivePower.toFloat() },
-                    lineColor = SoftGreen
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Load Power (kW)", style = MaterialTheme.typography.titleMedium)
-                LineChartView(
-                    graphData = graphData,
-                    powerSelector = { it.Load_Active_Power },
-                    lineColor = SoftMagenta
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("DG1 Power (kW)", style = MaterialTheme.typography.titleMedium)
-                LineChartView(
-                    graphData = graphData,
-                    powerSelector = { it.DG1_Active_Power_RYB },
-                    lineColor = SoftRed
-                )
+                graphConfigs.forEach { (label, selector) ->
+                    PowerGraph(label, graphData, selector, graphColors[label] ?: Color.Cyan)
+                }
             } else {
                 Text("No data available", color = Color.Gray)
             }
         }
     }
+}
+
+@Composable
+fun PowerGraph(
+    title: String,
+    data: List<GraphDataItem>,
+    selector: (GraphDataItem) -> Float,
+    color: Color
+) {
+    val headerStyle = MaterialTheme.typography.titleMedium
+    Text(title, style = headerStyle, color = Color.White)
+    LineChartView(
+        graphData = data,
+        powerSelector = selector,
+        lineColor = color.toArgb()
+    )
+    Spacer(modifier = Modifier.height(16.dp))
 }

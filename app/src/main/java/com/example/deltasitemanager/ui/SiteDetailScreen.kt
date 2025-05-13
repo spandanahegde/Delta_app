@@ -1,5 +1,4 @@
 package com.example.deltasitemanager.ui
-
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.Menu
@@ -57,8 +56,6 @@ import com.example.deltasitemanager.models.IndividualSiteInfo
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SiteDetailScreen(
@@ -75,7 +72,7 @@ fun SiteDetailScreen(
     val loadData = remember { mutableStateListOf<Entry>() }
     val dgData = remember { mutableStateListOf<Entry>() }
     val essData = remember { mutableStateListOf<Entry>() }
-
+    val pviData = remember { mutableStateListOf<Entry>() }
     var xIndex by remember { mutableStateOf(0f) }
 
     // Fetch every 60 seconds
@@ -89,20 +86,12 @@ fun SiteDetailScreen(
                 loadData.add(Entry(counter, it.Load_Active_Power.toFloat()))
                 dgData.add(Entry(counter, (it.DG1_Active_Total_Export + it.DG2_Active_Total_Export).toFloat()))
                 essData.add(Entry(counter, it.PCS_EnergyExport_Today.toFloat()))
+                pviData.add(Entry(counter, it.PVI_Total_Gen_Today.toFloat()))
                 counter += 1f
             }
             delay(60000)
         }
     }
-
-//    ModalNavigationDrawer(
-//        drawerState = drawerState,
-//        drawerContent = {
-//            DrawerContent(navController = navController, onItemClick = {
-//                scope.launch { drawerState.close() }
-//            })
-//        }
-//    ) {
         Scaffold(
             topBar = {
                 SmallTopAppBar(
@@ -112,6 +101,7 @@ fun SiteDetailScreen(
                             style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
                         )
                     },
+
                     navigationIcon = {
                         IconButton(onClick = {
                             navController.popBackStack()
@@ -135,7 +125,6 @@ fun SiteDetailScreen(
                         containerColor = Color(0xFF435385)
                     )
                 )
-
             }
         ) { innerPadding ->
             val siteData = individualSiteInfo?.firstOrNull()
@@ -143,6 +132,7 @@ fun SiteDetailScreen(
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
+                    .padding(WindowInsets.statusBars.asPaddingValues())
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()) // Enables scrolling if content overflows
             ) {
@@ -189,12 +179,8 @@ fun SiteDetailScreen(
                                 cumulativeValue = "${String.format("%.2f", it.PCS_EnergyImport_Lifetime / 1000)} MWh"
                             )
                         }
-
-
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp)) // Add spacing between cards
-
+                    Spacer(modifier = Modifier.height(16.dp))
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -302,7 +288,16 @@ fun formatDuration(seconds: Int): String {
     val secs = seconds % 60
     return String.format("%02dhr : %02dmin : %02dsec", hrs, mins, secs)
 }
-
+fun formatPowerValue(value: Double?): String {
+    return when {
+        value == null -> "--"
+        value in -0.001..0.001 -> if (value < 0) "-0" else "0"
+        else -> {
+            val rounded = String.format("%.2f", value)
+            if (rounded == "-0.00") "-0.00" else rounded
+        }
+    }
+}
 
 @Composable
 fun WidgetItem(
@@ -315,7 +310,7 @@ fun WidgetItem(
         modifier = Modifier
             .padding(8.dp)
             .padding(8.dp),
-        horizontalAlignment = Alignment.Start
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = title,
@@ -346,51 +341,7 @@ fun WidgetItem(
     }
 }
 
-//@Composable
-//fun DrawerItem(label: String, icon: ImageVector, onClick: () -> Unit) {
-//    Row(
-//        verticalAlignment = Alignment.CenterVertically,
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .clickable { onClick() }
-//            .padding(vertical = 12.dp)
-//    ) {
-//        Icon(icon, contentDescription = label, tint = Color.White)
-//        Spacer(modifier = Modifier.width(8.dp))
-//        Text(text = label, color = Color.White)
-//    }
-//}
-//@Composable
-//fun DrawerContent(navController: NavController, onItemClick: () -> Unit) {
-//    Column(
-//        modifier = Modifier
-//            .fillMaxHeight()
-//            .width(250.dp)
-//            .background(Color.Black)
-//            .padding(16.dp)
-//    ) {
-//        DrawerItem("Site Dashboard", Icons.Default.Dashboard, onClick = {
-//            // navController.navigate("site_dashboard")
-//            onItemClick()
-//        })
-//        DrawerItem("Analytics", Icons.Default.ShowChart, onClick = {
-//            // navController.navigate("analytics")
-//            onItemClick()
-//        })
-//        DrawerItem("Report", Icons.Default.Assignment, onClick = {
-//            // navController.navigate("report")
-//            onItemClick()
-//        })
-//        DrawerItem("Events", Icons.Default.Notifications, onClick = {
-//            // navController.navigate("events")
-//            onItemClick()
-//        })
-//        DrawerItem("Homepage", Icons.Default.Home, onClick = {
-//            // navController.navigate("homepage")
-//            onItemClick()
-//        })
-//    }
-//}
+
 @Composable
 fun DeviceBox(
     modifier: Modifier = Modifier,
@@ -549,7 +500,6 @@ fun DeviceBox(
     }
 }
 
-
 @Composable
 fun SiteDiagram(siteData: IndividualSiteInfo?) {
     Box(
@@ -648,12 +598,10 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
                     cloudBottomCenter.x - 20.dp.toPx(),
                     cloudBottomCenter.y  // slightly below the cloud center
                 )
-
               // Vertical drop down from cloud
                 val verticalDrop = Offset(loadStart.x, loadStart.y + 20.dp.toPx()) // drop vertically
               // Turn left horizontally, extending to the load's center
                 val horizontalToLoadCenter = Offset(loadPosition.x, verticalDrop.y) // move horizontally to load's center
-
               // Final vertical drop to load image
                 val finalLoadPosition = Offset(loadPosition.x, loadPosition.y)
 
@@ -670,8 +618,6 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
                     )
                 )
-
-
                 // Grid → Cloud Path ("L" shaped)
                 val cloudLeft = Offset(cloudPosition.x - centerSize.toPx() / 2, cloudPosition.y)
                 val gridToHorizontal =
@@ -692,8 +638,6 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
                     )
                 )
-
-
                 val startFromCloud = Offset(
                 cloudPosition.x - centerSize.toPx() / 2,
                 cloudPosition.y - 10.dp.toPx() // slightly above cloud left
@@ -739,7 +683,6 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
                 )
             }
 
-
 // Power Grid (Top-Left)
             DeviceBox(
                 modifier = Modifier
@@ -750,7 +693,6 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
 //                infoOnLeft = true,
                 imageOffsetX = (0).dp
             )
-
             DeviceBox(
                 modifier = Modifier
                     .offset(x = offsetX - 20.dp, y = -offsetY), // Move the whole box 20.dp to the left
@@ -763,11 +705,6 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
                 imageOffsetY = (0).dp,
                 imageOffsetX = (-30).dp
             )
-
-
-
-
-
 // Load (Bottom-Left)
             DeviceBox(
                 modifier = Modifier
@@ -776,25 +713,30 @@ fun SiteDiagram(siteData: IndividualSiteInfo?) {
                 label = "Load",
                 value = "${siteData?.Load_Active_Power?.toString() ?: "--"} kW",
 //                infoOnLeft = true,
-                imageOffsetX = (0).dp // 👈 Shift image slightly to left
+                imageOffsetX = (0).dp //  Shift image slightly to left
             )
-
-
             DeviceBox(
-                modifier = Modifier .offset(x = offsetX - 20.dp, y = offsetY),  // Adjust the offset as needed
+                modifier = Modifier.offset(x = offsetX - 20.dp, y = offsetY),
                 imageRes = R.drawable.ess2,
                 extraImageRes = R.drawable.soc,
                 label = "SoC",
-                value = "${siteData?.Total_SoC?.let { "$it %" } ?: "--"} kw",
+                value = siteData?.Total_SoC?.toDouble()?.let { "${formatPowerValue(it)} %" } ?: "--",
                 label1 = "ESS Output",
-                value1 = "${siteData?.PCS_ActivePower ?: "--"} kW",
-                infoOnLeft = true, // This places info on the opposite side
+                value1 = siteData?.PCS_ActivePower?.let { "${formatPowerValue(it)} kW" } ?: "--",
+                infoOnLeft = true,
                 imageOffsetX = (-30).dp,
-                extraImageOffsetX = (-70).dp,  // Adjust this value to move extra image to the left
+                extraImageOffsetX = (-70).dp,
                 extraImageOffsetY = 0.dp
             )
-
-
+// PVI (Top-Center-Right)
+//            DeviceBox(
+//                modifier = Modifier
+//                    .offset(x = 60.dp, y = -offsetY - 10.dp),
+//                imageRes = R.drawable.pvi,
+//                label = "PVI (650 kW)",
+//                value = "${siteData?.PVI_Total_Active_Power?.toString() ?: "--"} kW",
+//                imageOffsetX = (0).dp
+//            )
         }
     }
 }

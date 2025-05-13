@@ -46,8 +46,10 @@ dependencies {
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
     implementation("com.patrykandpatrick.vico:core:1.13.0")
     implementation("com.patrykandpatrick.vico:views:1.13.0")
-
+    implementation ("androidx.compose.ui:ui-text:1.6.0")
     implementation ("androidx.compose.material:material-icons-extended:1.6.1")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.30.1") // or latest
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.30.1") // latest version
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation(platform("androidx.compose:compose-bom:2024.02.01"))

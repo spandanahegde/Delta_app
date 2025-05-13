@@ -8,28 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.navigation.NavType
-import androidx.navigation.compose.*
-import androidx.navigation.navArgument
-import androidx.navigation.navDeepLink
-import java.util.Date
-import java.util.Locale
-import com.example.deltasitemanager.ui.*
-import com.example.deltasitemanager.ui.screens.*
 import com.example.deltasitemanager.ui.theme.DeltaSiteManagerTheme
 import com.example.deltasitemanager.viewmodel.AuthViewModel
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import com.github.mikephil.charting.data.Entry
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import com.example.deltasitemanager.viewmodel.GraphViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-
+import com.example.deltasitemanager.navigation.AppNavigation
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
@@ -40,92 +22,14 @@ class MainActivity : ComponentActivity() {
             var isDarkTheme by rememberSaveable { mutableStateOf(false) }
 
             DeltaSiteManagerTheme {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                    val navController = rememberNavController()
-                    val drawerState = rememberDrawerState(DrawerValue.Closed)
-                    val scope = rememberCoroutineScope()
-                    var isLoggedIn by rememberSaveable { mutableStateOf(false) }
-                    val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                    val onLogout = {
-                        authViewModel.clearSession()
-                        isLoggedIn = false
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Dashboard.route) { inclusive = true }
-                        }
-                    }
-
-//                    ModalNavigationDrawer(
-//                        drawerState = drawerState,
-//                        drawerContent = {
-//                            DrawerMenu(
-//                                navController = navController,
-//                                onNavigate = { route ->
-//                                    navController.navigate(route)
-//                                    scope.launch { drawerState.close() }
-//                                },
-//                                onCloseDrawer = { scope.launch { drawerState.close() } },
-//                                onToggleTheme = { isDarkTheme = !isDarkTheme },
-//                                isDarkTheme = isDarkTheme
-//                            )
-//                        }
-//                    ) {
-                        NavHost(
-                            navController = navController,
-                            startDestination = if (isLoggedIn) Screen.Dashboard.route else Screen.Login.route
-                        ) {
-                            composable(Screen.Login.route) {
-                                LoginScreen(
-                                    onLoginSuccess = {
-                                        isLoggedIn = true
-                                        navController.navigate(Screen.Dashboard.route) {
-                                            popUpTo(Screen.Login.route) { inclusive = true }
-                                        }
-                                    },
-                                    authViewModel = authViewModel
-                                )
-                            }
-
-                            composable(Screen.Dashboard.route) {
-                                DashboardScreen(
-                                    navController = navController,
-                                    authViewModel = authViewModel,
-                                    onLogout = onLogout,
-
-                                )
-                            }
-
-                            composable(
-                                route = Screen.SiteDetail.route,
-                                arguments = listOf(navArgument("macId") { type = NavType.StringType })
-                            ) { backStackEntry ->
-                                val macId = backStackEntry.arguments?.getString("macId") ?: ""
-                                SiteDetailScreen(
-                                    macId = macId,
-                                    navController = navController,
-                                    authViewModel = authViewModel
-                                )
-                            }
-
-                            composable(Screen.Analytics.route) {
-                                AnalyticsScreen(navController = navController)
-                            }
-
-                            composable("graph_screen/{macId}") { backStackEntry ->
-                                val macId = backStackEntry.arguments?.getString("macId") ?: return@composable
-                                val viewModel: GraphViewModel = viewModel()
-
-                                LaunchedEffect(Unit) {
-                                    viewModel.fetchGraphData(macId, viewModel.getTodayDate())
-                                }
-
-                                GraphScreen(viewModel = viewModel, navController = navController, macId = macId)
-                            }
-
-
-                        }
-                    }
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    AppNavigation(
+                        authViewModel = authViewModel,
+                        isDarkTheme = isDarkTheme,
+                        toggleTheme = { isDarkTheme = !isDarkTheme }
+                    )
                 }
             }
         }
     }
-
+}

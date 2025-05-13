@@ -1,5 +1,4 @@
 package com.example.deltasitemanager.ui
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import com.example.deltasitemanager.viewmodel.AuthViewModel
 import androidx.compose.runtime.Composable // For Composable function definition
@@ -30,10 +28,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource // For loading resources like icons
 import androidx.compose.runtime.collectAsState // For collecting state from ViewModel
 import androidx.compose.foundation.Image // For displaying images
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import coil.compose.rememberImagePainter // For image loading (if you're using an external URL for images)
 import androidx.compose.material3.Text // For displaying text
 import androidx.compose.material3.DropdownMenuItem
 import com.example.deltasitemanager.R
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+
 
 @Composable
 fun DashboardScreen(
@@ -54,11 +61,20 @@ fun DashboardScreen(
     // Calculate Total Installations and Total Installed Capacity
     val totalInstallations = siteInfo?.size ?: 0
     val totalInstalledCapacity = siteInfo?.sumOf { it.capacity } ?: 0
+    val systemUiController = rememberSystemUiController()
+    val headerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+
+    SideEffect {
+        systemUiController.setStatusBarColor(
+            color = headerColor,
+            darkIcons = false // white icons for dark background
+        )
+    }
 
     Scaffold(
         scaffoldState = scaffoldState,
         backgroundColor = MaterialTheme.colorScheme.background,
-
+        contentWindowInsets = WindowInsets.systemBars,
         topBar = {
             DashboardHeader(
                 onMenuClick = {
@@ -67,15 +83,19 @@ fun DashboardScreen(
                     }
                 },
                 onLogout = onLogout
+
             )
+           
         },
         content = { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
-            ) {
+                    .padding(16.dp), // only your own content padding
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            )
+            {
                 // Info Cards
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(
@@ -85,16 +105,16 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     InfoCard(
+                        iconRes = R.drawable.solar_icon,
                         title = "Total Installations",
                         value = totalInstallations.toString(),
-                        imageUrl = "https://pqr.deltaww.com/BESS/public/images/solar_icon.png",
                         modifier = Modifier
                             .weight(1f)
                     )
                     InfoCard(
+                        iconRes = R.drawable.baseline_hexagon_24,
                         title = "Total Installed Capacity",
                         value = "$totalInstalledCapacity kW",
-                        iconRes = R.drawable.baseline_hexagon_24,
                         modifier = Modifier
                             .weight(1f)
                     )
@@ -118,8 +138,9 @@ fun DashboardScreen(
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text("EMS Name: ${site.ems_name}", color = MaterialTheme.colorScheme.onSurface)
-                                    Text("Sub Name: ${site.sub_name}", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Client Name: ${site.sub_name}", color = MaterialTheme.colorScheme.onSurface)
                                     Text("Capacity: ${site.capacity}", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Last Updated: ${site.created_at}", color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
@@ -160,26 +181,36 @@ fun InfoCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(value, style = MaterialTheme.typography.titleLarge)
 
-            imageUrl?.let {
-                Image(painter = rememberImagePainter(it), contentDescription = null)
-            }
+
             iconRes?.let {
-                Icon(painter = painterResource(id = it), contentDescription = null)
+                Icon(
+                    painter = painterResource(id = it),
+                    contentDescription = null,
+                    tint = Color.Unspecified
+                )
             }
+
         }
     }
-}@Composable
+}
+
+@Composable
 fun DashboardHeader(
     onMenuClick: () -> Unit = {},
     onLogout: () -> Unit
 ) {
+
+
     var expanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(WindowInsets.statusBars.asPaddingValues())
+            .background(Color(0xFF435385))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)) // Glassy blue
             .padding(vertical = 16.dp, horizontal = 20.dp),
+
         verticalAlignment = Alignment.CenterVertically
     ) {
 
@@ -203,7 +234,7 @@ fun DashboardHeader(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(Color.White) // ✅ White background for visibility
+                modifier = Modifier.background(Color.Black) // ✅ White background for visibility
             ) {
                 DropdownMenuItem(
                     onClick = {
@@ -213,7 +244,7 @@ fun DashboardHeader(
                     text = {
                         Text(
                             text = "Log Out",
-                            color = Color.Black
+                            color = Color.White
                         )
                     }
                 )

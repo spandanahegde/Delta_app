@@ -16,28 +16,47 @@ class GraphViewModel : ViewModel() {
     private val _graphData = MutableStateFlow<List<GraphDataItem>>(emptyList())
     val graphData: StateFlow<List<GraphDataItem>> = _graphData
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
     fun fetchGraphData(macId: String, date: String) {
-        val apiKey = ApiClient.apiKey ?: return
+        val apiKey = getApiKeyOrLogError() ?: return
 
         viewModelScope.launch {
             try {
                 val response = ApiClient.apiService.getGraphInfo(apiKey, macId, date)
-                if (response.isSuccessful && response.body()?.status == "success") {
-                    _graphData.value = response.body()?.message ?: emptyList()
-                    Log.d("GraphViewModel", "Graph data fetched: ${_graphData.value}")
+                val body = response.body()
+                if (response.isSuccessful && body?.status == "success") {
+                    _graphData.value = body.message ?: emptyList()
+                    logDebug("Graph data fetched: ${_graphData.value}")
                 } else {
-                    Log.e("GraphViewModel", "API error: ${response.errorBody()?.string()}")
+                    val errorMessage = body?.message?.toString() ?: "API response failed"
+                    handleError(errorMessage)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
-                Log.e("GraphViewModel", "Error fetching graph data", e)
+                handleError("Error fetching graph data: ${e.localizedMessage}")
             }
         }
     }
 
+    fun getTodayDate(): String = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-    fun getTodayDate(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        return sdf.format(Date())
+    // --- Utility Functions ---
+
+    private fun getApiKeyOrLogError(): String? {
+        val key = ApiClient.apiKey
+        if (key.isNullOrBlank()) {
+            handleError("API Key is missing")
+            return null
+        }
+        return key
     }
+
+    private fun handleError(message: String) {
+        _error.value = message
+        logError(message)
+    }
+
+    private fun logDebug(msg: String) = Log.d("GraphViewModel", msg)
+    private fun logError(msg: String) = Log.e("GraphViewModel", msg)
 }
