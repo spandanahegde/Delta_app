@@ -9,9 +9,9 @@ import com.github.mikephil.charting.utils.MPPointF
 import com.example.deltasitemanager.R
 
 class TimeMarkerView(context: Context, private val timeLabels: List<String>) :
-    MarkerView(context, android.R.layout.simple_list_item_1) {
+    MarkerView(context, R.layout.marker_view) {
 
-    private val textView: TextView = findViewById(android.R.id.text1)
+    private val textView: TextView = findViewById(R.id.marker_text)
 
     override fun refreshContent(e: Entry?, highlight: Highlight?) {
         if (e == null) return

@@ -17,7 +17,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-
 class AuthViewModel : ViewModel() {
 
     private val _apiKey = MutableStateFlow<String?>(null)
@@ -35,11 +34,14 @@ class AuthViewModel : ViewModel() {
     private val _selectedMacId = MutableStateFlow<String?>(null)
     val selectedMacId: StateFlow<String?> = _selectedMacId
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     private var autoRefreshJob: Job? = null
 
-    // Login function
     fun login(username: String, password: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 val usernamePart = username.toRequestBody("text/plain".toMediaType())
                 val passwordPart = password.toRequestBody("text/plain".toMediaType())
@@ -48,27 +50,26 @@ class AuthViewModel : ViewModel() {
                 if (response.status == "success") {
                     ApiClient.apiKey = response.api_key
                     _apiKey.value = response.api_key
-                    // Start auto-refresh after login success
                     startAutoRefresh()
                 } else {
                     _error.value = safeMessage(response.message, "Login failed")
                 }
             } catch (e: Exception) {
                 _error.value = "Login failed: ${e.localizedMessage}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
-    // Set the selected MAC ID
     fun setSelectedMacId(macId: String) {
         _selectedMacId.value = macId
     }
 
-    // Periodic auto-refresh logic
     private fun startAutoRefresh() {
         autoRefreshJob = viewModelScope.launch {
             while (true) {
-                delay(60_000) // Refresh every 60 seconds
+                delay(60_000)
                 fetchLatestData()
             }
         }
@@ -84,11 +85,9 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Fetch site info
     fun getSiteInfo() {
         viewModelScope.launch {
             val key = requireApiKey() ?: return@launch
-
             try {
                 val response = ApiClient.apiService.getSiteInfo(apiKey = key)
                 if (response.isSuccessful) {
@@ -112,11 +111,9 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Fetch individual site info
     fun getIndividualSiteInfo(macId: String) {
         viewModelScope.launch {
             val key = requireApiKey() ?: return@launch
-
             try {
                 val response = ApiClient.apiService.getIndividualSiteInfo(apiKey = key, macId = macId)
                 if (response.isSuccessful) {
@@ -135,12 +132,10 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Helper to safely extract a message
     private fun safeMessage(message: String?, fallback: String): String {
         return message ?: fallback
     }
 
-    // Helper to require API Key or abort
     private fun requireApiKey(): String? {
         val key = _apiKey.value
         if (key.isNullOrBlank()) {
@@ -150,7 +145,6 @@ class AuthViewModel : ViewModel() {
         return key
     }
 
-    // Helper to parse generic JSON arrays using Gson
     private inline fun <reified T> parseJsonArray(json: Any): List<T>? {
         return try {
             val gson = Gson()
@@ -164,7 +158,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Clear session data
     fun clearSession() {
         _apiKey.value = null
         _siteInfo.value = null

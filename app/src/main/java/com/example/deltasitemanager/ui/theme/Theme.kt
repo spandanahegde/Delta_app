@@ -14,7 +14,7 @@ fun DeltaSiteManagerTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = darkColorScheme(
-        primary = Color(0xFF435385),        // Light Blue (for buttons, highlights)
+        primary = Color(0xFF4964CB),        // Light Blue (for buttons, highlights)
         onPrimary = Color.White,            // Text/icons on primary
         secondary = Color(0xFFE4EEEE),      // Teal accent
         onSecondary = Color.White,          // Text/icons on secondary

@@ -20,12 +20,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
-import com.example.deltasitemanager.viewmodel.AuthViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.ui.res.painterResource
 import com.example.deltasitemanager.R
+import com.example.deltasitemanager.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
@@ -36,7 +33,9 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+
     val apiKey by authViewModel.apiKey.collectAsState()
+    val isLoading by authViewModel.isLoading.collectAsState()
 
     LaunchedEffect(apiKey) {
         if (apiKey != null) {
@@ -48,7 +47,6 @@ fun LoginScreen(
     val darkBackground = Color.Black
     val fieldBackground = Color(0xFF1C1C1C)
     val textColor = Color.White
-    val errorColor = Color.Red
 
     Column(
         modifier = Modifier
@@ -58,7 +56,6 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo
         Image(
             painter = painterResource(id = R.drawable.delta_logo),
             contentDescription = "Delta Logo",
@@ -69,7 +66,6 @@ fun LoginScreen(
             contentScale = ContentScale.Fit
         )
 
-        // Username Field
         OutlinedTextField(
             value = username,
             onValueChange = {
@@ -81,8 +77,8 @@ fun LoginScreen(
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = "User Icon") },
             shape = RoundedCornerShape(12.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                backgroundColor = fieldBackground, // Dark background for field
-                textColor = textColor,             // White text
+                backgroundColor = fieldBackground,
+                textColor = textColor,
                 focusedBorderColor = Color.Gray,
                 unfocusedBorderColor = Color.DarkGray,
                 cursorColor = textColor,
@@ -96,7 +92,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Password Field with Visibility Toggle
         OutlinedTextField(
             value = password,
             onValueChange = {
@@ -116,8 +111,8 @@ fun LoginScreen(
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             shape = RoundedCornerShape(12.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                backgroundColor = fieldBackground, // Dark background for field
-                textColor = textColor,             // White text
+                backgroundColor = fieldBackground,
+                textColor = textColor,
                 focusedBorderColor = Color.Gray,
                 unfocusedBorderColor = Color.DarkGray,
                 cursorColor = textColor,
@@ -126,13 +121,11 @@ fun LoginScreen(
                 focusedLabelColor = textColor,
                 unfocusedLabelColor = Color.LightGray
             ),
-
-                    modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Error Message ABOVE login button
         if (showError) {
             Text(
                 text = "Invalid username or password",
@@ -140,38 +133,29 @@ fun LoginScreen(
                 color = MaterialTheme.colors.error,
                 modifier = Modifier.align(Alignment.Start)
             )
-
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Login Button
-        val coroutineScope = rememberCoroutineScope()
         Button(
             onClick = {
-                coroutineScope.launch {
-                    authViewModel.login(username, password)
-                    delay(2000)
-                    if (authViewModel.apiKey.value == null) {
-                        showError = true
-                    }
-                }
+                authViewModel.login(username, password)
+                showError = false
             },
+            enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(10.dp)
         ) {
-            Text("Login", fontSize = 16.sp)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Text("Login", fontSize = 16.sp)
+            }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Forgot Password Centered
-//        Text(
-//            text = "Forgot Password?",
-//            color = MaterialTheme.colors.primary,
-//            fontSize = 14.sp,
-//            modifier = Modifier.align(Alignment.CenterHorizontally)
-//        )
     }
 }

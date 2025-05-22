@@ -85,7 +85,7 @@ fun DashboardScreen(
                 onLogout = onLogout
 
             )
-           
+
         },
         content = { padding ->
             Column(
@@ -157,6 +157,7 @@ fun DashboardScreen(
     )
 }
 
+
 @Composable
 fun InfoCard(
     title: String,
@@ -207,7 +208,7 @@ fun DashboardHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(WindowInsets.statusBars.asPaddingValues())
-            .background(Color(0xFF435385))
+            .background(Color(0xFF4359E3))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)) // Glassy blue
             .padding(vertical = 16.dp, horizontal = 20.dp),
 

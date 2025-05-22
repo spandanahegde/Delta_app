@@ -94,6 +94,7 @@ dependencies {
     implementation ("androidx.compose.material:material-icons-extended:<version>")
     implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation ("androidx.compose.foundation:foundation:1.4.0")
+    implementation ("androidx.compose.animation:animation:1.6.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
