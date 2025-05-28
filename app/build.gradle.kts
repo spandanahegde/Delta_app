@@ -42,6 +42,7 @@ android {
 
 dependencies {
 
+    implementation ("com.google.android.material:material:1.11.0")
     implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22") // Or a similar line
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
     implementation("com.patrykandpatrick.vico:core:1.13.0")

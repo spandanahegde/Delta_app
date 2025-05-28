@@ -1,9 +1,7 @@
 package com.example.deltasitemanager.ui.components
 
 import android.util.Log
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,18 +18,8 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
-import com.github.mikephil.charting.formatter.ValueFormatter
 import java.text.SimpleDateFormat
 import java.util.*
-
-// Formatter that only shows selected time points
-class TimeAxisFormatter(private val labels: List<String>) : ValueFormatter() {
-    private val showOnly = listOf("0:00", "12:00", "18:00", "24:00")
-    override fun getFormattedValue(value: Float): String {
-        val index = value.toInt()
-        return labels.getOrNull(index)?.takeIf { it in showOnly } ?: ""
-    }
-}
 
 @Composable
 fun LineChartView(
@@ -42,50 +30,38 @@ fun LineChartView(
     labelColor: Color = Color.Transparent,
     modifier: Modifier = Modifier
 ) {
-
     if (graphData.isEmpty()) return
 
+    // Define time formats
     val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val currentTime = outputFormat.format(Date())
 
-    val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-    // Extract and format unique time labels
-    val timeLabels = graphData.mapNotNull { item ->
-        runCatching {
-            inputFormat.parse(item.evtime)
-        }.getOrNull()?.let {
-            outputFormat.format(it)
-        }
+    // Extract time labels from graph data
+    val timeLabels = graphData.mapNotNull {
+        runCatching { inputFormat.parse(it.evtime) }.getOrNull()?.let { outputFormat.format(it) }
     }.distinct()
 
-    // Adjusted graph data: only show values up to current time
-    val adjustedGraphData = graphData.mapIndexedNotNull { index, item ->
-        val formattedTime = runCatching {
-            inputFormat.parse(item.evtime)
-        }.getOrNull()?.let {
-            outputFormat.format(it)
-        }
-
-        if (formattedTime == null) {
+    // Generate chart entries with timestamps up to current time
+    val entries = graphData.mapIndexedNotNull { index, item ->
+        val parsedDate = runCatching { inputFormat.parse(item.evtime) }.getOrNull()
+        if (parsedDate == null) {
             Log.e("LineChartView", "Invalid date format: ${item.evtime}")
+            return@mapIndexedNotNull null
         }
 
-        if (formattedTime != null && formattedTime <= currentTime) {
-            val rawValue = powerSelector(item)
-            val displayValue = if (kotlin.math.abs(rawValue) < 0.0001f) 0f else rawValue
-            Entry(index.toFloat(), displayValue)
-
-        } else {
-            null
-        }
+        val value = powerSelector(item)
+        val cleanValue = if (kotlin.math.abs(value) < 0.0001f) 0f else value
+        Entry(index.toFloat(), cleanValue)
     }
 
+    // Main chart container
     Column(
         modifier = modifier
             .fillMaxWidth()
             .height(300.dp)
     ) {
+        // Optional chart title
         if (label.isNotEmpty()) {
             Text(
                 text = label,
@@ -94,48 +70,11 @@ fun LineChartView(
             )
         }
 
+        // AndroidView to embed MPAndroidChart LineChart
         AndroidView(
             factory = { context ->
                 LineChart(context).apply {
-                    val dataSet = LineDataSet(adjustedGraphData, label).apply {
-                        color = lineColor
-                        lineWidth = 2f
-                        setDrawCircles(false)
-                        setDrawValues(false)
-                        setDrawCircleHole(false)
-                        mode = LineDataSet.Mode.CUBIC_BEZIER
-                    }
-
-                    data = LineData(dataSet)
-
-                    xAxis.apply {
-                        position = XAxis.XAxisPosition.BOTTOM
-                        valueFormatter = IndexAxisValueFormatter(timeLabels)
-                        setDrawGridLines(false)
-                        granularity = 1f
-                        labelCount = if (timeLabels.size > 5) 5 else timeLabels.size
-                        labelRotationAngle = -45f
-                        textColor = Color.White.toArgb()
-                    }
-
-                    axisLeft.apply {
-                        // ✅ Removed axisMinimum = 0f to allow negative values
-                        setDrawGridLines(true)
-                        axisLineColor = Color.White.toArgb()
-                        textColor = Color.White.toArgb()
-                        isGranularityEnabled = true
-                        granularity = 1f
-                    }
-
-                    axisRight.isEnabled = false
-
-                    description = Description().apply {
-                        text = ""
-                        isEnabled = false
-                    }
-
-                    marker = TimeMarkerView(context, timeLabels)
-                    invalidate()
+                    setupChart(this, entries, timeLabels, lineColor, label)
                 }
             },
             modifier = Modifier
@@ -143,4 +82,54 @@ fun LineChartView(
                 .height(300.dp)
         )
     }
+}
+
+/**
+ * Configures the LineChart appearance, data, and interaction.
+ */
+private fun setupChart(
+    chart: LineChart,
+    entries: List<Entry>,
+    timeLabels: List<String>,
+    lineColor: Int,
+    label: String
+) {
+    val dataSet = LineDataSet(entries, label).apply {
+        color = lineColor
+        lineWidth = 2f
+        setDrawCircles(false)
+        setDrawValues(false)
+        setDrawCircleHole(false)
+        mode = LineDataSet.Mode.CUBIC_BEZIER
+    }
+
+    chart.data = LineData(dataSet)
+
+    chart.xAxis.apply {
+        position = XAxis.XAxisPosition.BOTTOM
+        valueFormatter = IndexAxisValueFormatter(timeLabels)
+        setDrawGridLines(false)
+        granularity = 1f
+        labelCount = minOf(timeLabels.size, 5)
+        labelRotationAngle = -45f
+        textColor = Color.White.toArgb()
+    }
+
+    chart.axisLeft.apply {
+        setDrawGridLines(true)
+        axisLineColor = Color.White.toArgb()
+        textColor = Color.White.toArgb()
+        isGranularityEnabled = true
+        granularity = 1f
+    }
+
+    chart.axisRight.isEnabled = false
+
+    chart.description = Description().apply {
+        text = ""
+        isEnabled = false
+    }
+
+    chart.marker = TimeMarkerView(chart.context, timeLabels)
+    chart.invalidate()
 }

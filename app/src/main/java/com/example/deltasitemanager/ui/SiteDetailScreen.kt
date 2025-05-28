@@ -74,6 +74,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
+import com.example.deltasitemanager.models.SiteInfo
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,15 +84,16 @@ fun SiteDetailScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+
     val individualSiteInfo by authViewModel.individualSiteInfo.collectAsState()
+    val siteInfoList by authViewModel.siteInfo.collectAsState()
+    val siteData = siteInfoList?.firstOrNull { it.mac_id == macId }
     val powerGridData = remember { mutableStateListOf<Entry>() }
     val loadData = remember { mutableStateListOf<Entry>() }
     val dgData = remember { mutableStateListOf<Entry>() }
     val essData = remember { mutableStateListOf<Entry>() }
     val pviData = remember { mutableStateListOf<Entry>() }
-    var xIndex by remember { mutableStateOf(0f) }
+
     // Fetch every 60 seconds
     LaunchedEffect(macId) {
         var counter = 0f
@@ -119,9 +121,10 @@ fun SiteDetailScreen(
             SmallTopAppBar(
                 title = {
                     Text(
-                        "Real Time Monitoring : BESS Mode",
+                        text = "Real Time Monitoring : ${siteData?.ems_name ?: "Unknown Client"}",
                         style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
                     )
+
                 },
                 navigationIcon = {
                     IconButton(onClick = {
@@ -147,7 +150,7 @@ fun SiteDetailScreen(
                     )
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(
-                      Color(0xFF4359E3)
+                    Color(0xFF2E3A59)
                 )
             )
         }
@@ -171,87 +174,86 @@ fun SiteDetailScreen(
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            siteData?.let { it ->
-
-                // First row
-                HorizontalCardSection(
-                    widgets = listOf(
-                        Triple("Grid Outage", "${it.PerDay_GridOutage_Instance} times", null),
-                        Triple("Avg Load", "${String.format("%.2f", it.PerDay_AvgLoad)} kW", null),
-                        Triple(
-                            "PCS Import",
-                            "${String.format("%.2f", it.PCS_EnergyImport_Today)} kWh",
-                            "${String.format("%.2f", it.PCS_EnergyImport_Lifetime / 1000)} MWh"
-                        )
-                    )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Second row
-                HorizontalCardSection(
-                    widgets = listOf(
-                        Triple(
-                            "Charging Cycles",
-                            String.format("%.2f", it.charging_cycles),
-                            null
-                        ),
-                        Triple(
-                            "Discharging Cycles",
-                            String.format("%.2f", it.discharging_cycles),
-                            null
-                        ),
-                        Triple(
-                            "Total Cycle Count",
-                            String.format("%.2f", it.total_cycle_count),
-                            null
-                        )
-                    )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                // Third row
-                HorizontalCardSection(
-                    widgets = listOf(
-                        Triple(
-                            "Grid Outage Duration",
-                            formatDuration(it.Grid_outage_duration),
-                            null
-                        ),
-                        Triple(
-                            "Decarbonization",
-                            "${String.format("%.2f", it.co2_emission)} kg",
-                            "${String.format("%.2f", it.co2_emission / 1000)} ton"
-                        )
-                    )
+            siteData?.let { data ->
+                val isPviZero = data.PVI_Total_Gen_Today == 0.0
+                val commonWidgets = listOf(
+                    Triple("Grid Outage", "${data.PerDay_GridOutage_Instance} times", null),
+                    Triple("Avg Load", "${String.format("%.2f", data.PerDay_AvgLoad)} kW", null),
+                    Triple(
+                        "PCS Import",
+                        "${String.format("%.2f", data.PCS_EnergyImport_Today)} kWh",
+                        "${String.format("%.2f", data.PCS_EnergyImport_Lifetime / 1000)} MWh"
+                    ),
+                    Triple("Charging Cycles", String.format("%.2f", data.charging_cycles), null),
+                    Triple(
+                        "Discharging Cycles",
+                        String.format("%.2f", data.discharging_cycles),
+                        null
+                    ),
+                    Triple(
+                        "Total Cycle Count",
+                        String.format("%.2f", data.total_cycle_count),
+                        null
+                    ),
+                    Triple(
+                        "GRID Import",
+                        "${String.format("%.2f", data.GRID_Active_Power_RYB)} kWh",
+                        "${String.format("%.2f", data.GRID_Active_Total_Import / 1000)} MWh"
+                    ),
+                    Triple(
+                        "Diesel Saving",
+                        "${String.format("%.2f", data.diesel_save)} Ltr",
+                        "${String.format("%.2f", data.diesel_save_cumulative)} Ltr"
+                    ),
+                    Triple(
+                        "Decarbonization",
+                        "${String.format("%.2f", data.co2_emission)} kg",
+                        "${String.format("%.2f", data.co2_emission / 1000)} ton"
+                    ),
+                    Triple(
+                        "Diesel Cost Saving",
+                        "₹ ${String.format("%.2f", data.cost_diesel_save)}",
+                        "₹ ${String.format("%.2f", data.cost_diesel_save_cumulative)}"
+                    ),
+                    Triple("Grid Outage Duration", formatDuration(data.Grid_outage_duration), null)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Display common data
+                commonWidgets.chunked(3).forEach { section ->
+                    HorizontalCardSection(widgets = section)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
-                // Fourth row
-                HorizontalCardSection(
-                    widgets = listOf(
-                        Triple(
-                            "Diesel Saving",
-                            "${String.format("%.2f", it.diesel_save)} Ltr",
-                            null
-                        ),
-                        Triple(
-                            "Diesel Cost Saving",
-                            "₹ ${String.format("%.2f", it.cost_diesel_save)}",
-                            null
+                if (!isPviZero) {
+                    HorizontalCardSection(
+                        widgets = listOf(
+                            Triple(
+                                "PVI Generation OFF Grid",
+                                "${String.format("%.2f", data.PVI_Total_Active_Power)} kWh",
+                                null
+                            ),
+                            Triple(
+                                "Grid Outage Duration",
+                                formatDuration(data.PVI_Runtime_Offgrid),
+                                null
+                            )
                         )
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
-
 }
-
 fun formatDuration(seconds: Int): String {
     val hrs = seconds / 3600
     val mins = (seconds % 3600) / 60
+    val secs = seconds % 60
+    return String.format("%02dhr : %02dmin : %02dsec", hrs, mins, secs)
+}
+fun formatDurationforDubble(seconds: Int): String {
+    val hrs = seconds / 3600
+    val mins = (seconds % 3600) % 60 / 60
     val secs = seconds % 60
     return String.format("%02dhr : %02dmin : %02dsec", hrs, mins, secs)
 }
@@ -280,11 +282,11 @@ fun CardWidget(
         Color(0xFF16161E)
 
     val borderColor = if (isSelected)
-            Color(0xFF3A2293)
+        Color(0xFF3A2293)
     else
-            Color.Gray.copy(alpha = 0.2f)
+        Color.Gray.copy(alpha = 0.2f)
 
-        Column(
+  Column(
             modifier = modifier
                 .width(190.dp)
                 .height(150.dp) // ✅ Fixed height

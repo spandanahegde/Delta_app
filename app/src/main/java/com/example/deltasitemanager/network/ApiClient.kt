@@ -9,7 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
-    private const val BASE_URL = "https://pqr.deltaww.com/BESS/mobileapi/"
+    private const val BASE_URL = "https://pqr.deltaww.com/"
 
     @Volatile
     var apiKey: String? = null

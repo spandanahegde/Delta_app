@@ -3,19 +3,17 @@ package com.example.deltasitemanager.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.deltasitemanager.models.GraphDataItem
 import com.example.deltasitemanager.models.IndividualSiteInfo
 import com.example.deltasitemanager.models.SiteInfo
 import com.example.deltasitemanager.network.ApiClient
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.UnknownHostException
 
 class AuthViewModel : ViewModel() {
 
@@ -39,6 +37,7 @@ class AuthViewModel : ViewModel() {
 
     private var autoRefreshJob: Job? = null
 
+    /** Performs user login and stores the API key on success */
     fun login(username: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -50,7 +49,7 @@ class AuthViewModel : ViewModel() {
                 if (response.status == "success") {
                     ApiClient.apiKey = response.api_key
                     _apiKey.value = response.api_key
-                    startAutoRefresh()
+                    // Don't start auto-refresh here; wait until MAC ID is set
                 } else {
                     _error.value = safeMessage(response.message, "Login failed")
                 }
@@ -62,29 +61,13 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    /** Updates the selected MAC ID and starts auto-refresh */
     fun setSelectedMacId(macId: String) {
         _selectedMacId.value = macId
+        startAutoRefresh() // Trigger only after MAC ID is available
     }
 
-    private fun startAutoRefresh() {
-        autoRefreshJob = viewModelScope.launch {
-            while (true) {
-                delay(60_000)
-                fetchLatestData()
-            }
-        }
-    }
-
-    private suspend fun fetchLatestData() {
-        val selectedMacId = _selectedMacId.value
-        if (selectedMacId != null) {
-            getSiteInfo()
-            getIndividualSiteInfo(selectedMacId)
-        } else {
-            _error.value = "No MAC ID selected for data refresh"
-        }
-    }
-
+    /** Fetches site summary info */
     fun getSiteInfo() {
         viewModelScope.launch {
             val key = requireApiKey() ?: return@launch
@@ -93,24 +76,25 @@ class AuthViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null && body.status == "success") {
-                        val siteList = parseJsonArray<SiteInfo>(body.message)
-                        if (siteList != null) {
-                            _siteInfo.value = siteList
-                        } else {
-                            _error.value = "Invalid site data format"
-                        }
+                        _siteInfo.value = parseJsonArray<SiteInfo>(body.message)
+                            ?: throw IllegalStateException("Invalid site data format")
                     } else {
                         _error.value = body?.message?.toString() ?: "No site data available"
                     }
                 } else {
                     _error.value = "API call failed: ${response.code()}"
                 }
+            } catch (e: UnknownHostException) {
+                Log.e("AuthViewModel", "Network error: ${e.localizedMessage}", e)
+                _error.value = "No internet connection or server unreachable"
             } catch (e: Exception) {
+                Log.e("AuthViewModel", "General error: ${e.localizedMessage}", e)
                 _error.value = "Error fetching site info: ${e.localizedMessage}"
             }
         }
     }
 
+    /** Fetches detailed data for the selected site */
     fun getIndividualSiteInfo(macId: String) {
         viewModelScope.launch {
             val key = requireApiKey() ?: return@launch
@@ -132,17 +116,51 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    private fun safeMessage(message: String?, fallback: String): String {
-        return message ?: fallback
+    /** Clears user session and stops background tasks */
+    fun clearSession() {
+        _apiKey.value = null
+        _siteInfo.value = null
+        _individualSiteInfo.value = null
+        _selectedMacId.value = null
+        _error.value = null
+        autoRefreshJob?.cancel()
+    }
+
+    /** Starts periodic refresh if not already running */
+    private fun startAutoRefresh() {
+        if (autoRefreshJob?.isActive == true) return
+
+        autoRefreshJob = viewModelScope.launch {
+            var retryDelay = 60_000L
+            while (true) {
+                delay(retryDelay)
+                val macId = _selectedMacId.value
+                if (macId != null) {
+                    try {
+                        getSiteInfo()
+                        getIndividualSiteInfo(macId)
+                        retryDelay = 60_000L
+                    } catch (e: UnknownHostException) {
+                        _error.value = "DNS error: Check internet or server config"
+                        retryDelay = 180_000L
+                    } catch (e: Exception) {
+                        _error.value = "Error during auto-refresh: ${e.localizedMessage}"
+                        retryDelay = 120_000L
+                    }
+                } else {
+                    _error.value = "No MAC ID selected. Stopping auto-refresh."
+                    autoRefreshJob?.cancel()
+                    break
+                }
+            }
+        }
     }
 
     private fun requireApiKey(): String? {
-        val key = _apiKey.value
-        if (key.isNullOrBlank()) {
+        return _apiKey.value ?: run {
             _error.value = "API Key is missing"
-            return null
+            null
         }
-        return key
     }
 
     private inline fun <reified T> parseJsonArray(json: Any): List<T>? {
@@ -158,12 +176,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun clearSession() {
-        _apiKey.value = null
-        _siteInfo.value = null
-        _individualSiteInfo.value = null
-        _selectedMacId.value = null
-        _error.value = null
-        autoRefreshJob?.cancel()
+    private fun safeMessage(message: String?, fallback: String): String {
+        return message ?: fallback
     }
 }

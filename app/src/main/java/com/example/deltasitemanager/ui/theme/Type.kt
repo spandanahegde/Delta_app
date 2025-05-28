@@ -33,12 +33,17 @@ val Typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = poppins,
         fontWeight = FontWeight.Bold,
-        fontSize = 16.sp
+        fontSize = 18.sp
     ),
     labelLarge = TextStyle(
         fontFamily = poppins,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = poppins,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp
     ),
 )
 

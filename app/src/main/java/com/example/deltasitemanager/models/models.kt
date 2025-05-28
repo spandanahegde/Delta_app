@@ -1,4 +1,5 @@
 package com.example.deltasitemanager.models
+
 data class LoginRequest(
     val username: String,
     val password: String
@@ -92,6 +93,7 @@ data class IndividualSiteInfo(
     val PVI_Total_Active_Power: Double,
     val PVI_Curtailed_Percentage: Double,
     val PVI_Total_Gen_Today: Double,
+    val PVI_Runtime_OffGrid: Int,
     val PVI_Total_Gen_Lifetime: Double,
     val PVI1_Active_Power: Double,
     val PVI1_Inverter_State: Int,
@@ -111,7 +113,7 @@ data class IndividualSiteInfo(
     val discharging_cycles: Double,
     val total_cycle_count: Double,
     val PVI_Generation_Offgrid: Double,
-    val PVI_Runtime_Offgrid: Double,
+    val PVI_Runtime_Offgrid: Int,
     val PVI8_Active_Power: Double,
     val Inverter8_State: Int,
     val PVI9_Active_Power: Double,
@@ -127,6 +129,7 @@ data class IndividualSiteInfo(
     val PVI14_Active_Power: Double,
     val Inverter14_State: Int,
     val diesel_save_cumulative: Double?,
+    val diesel_save_lifetime: Double,
     val cost_diesel_save_cumulative: Double?
 )
 

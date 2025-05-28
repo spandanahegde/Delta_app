@@ -13,31 +13,33 @@ import com.example.deltasitemanager.models.GraphDataResponse
 interface ApiService {
 
     @Multipart
-    @POST("login")
+    @POST("BESS/mobileapi/login")
     suspend fun login(
         @Part("username") username: RequestBody,
         @Part("password") password: RequestBody
     ): LoginResponse
 
     @FormUrlEncoded
-    @POST("getsiteinfo")
+    @POST("BESS/mobileapi/getsiteinfo")
     suspend fun getSiteInfo(
         @Field("Authorization") apiKey: String
     ): Response<SiteInfoResponse>
 
     @FormUrlEncoded
-    @POST("getindividualsiteinfo")
+    @POST("BESS/mobileapi/getindividualsiteinfo")
     suspend fun getIndividualSiteInfo(
         @Field("Authorization") apiKey: String,
         @Field("macid") macId: String
     ): Response<GenericResponse<IndividualSiteInfo>>
 
     @FormUrlEncoded
-    @POST("getgraphinfo")
+    @POST("BESS/mobileapi/getgraphinfo")
     suspend fun getGraphInfo(
-        @Field("Authorization") apiKey: String,
+        @Field("Authorization") apiKey: String, 
         @Field("macid") macId: String,
-        @Field("date") date: String
+        @Field("date") date: String,
+        @Field("start_time") startTime: String,
+        @Field("end_time") endTime: String
     ): Response<GraphDataResponse>
 
 }
