@@ -1,5 +1,4 @@
 package com.example.deltasitemanager.viewmodel
-
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
